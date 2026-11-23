@@ -25,7 +25,14 @@ function micros(value: string | null | undefined): bigint | null {
 
 export function assessOffers(offers: NetworkOffer[]): OfferAssessment[] {
   const groups = new Map<string, NetworkOffer[]>();
+  const detailedProducts = new Set(offers
+    .filter((offer) => offer.basePlanId || offer.offerId || offer.price)
+    .map((offer) => offer.productId));
   for (const offer of offers) {
+    // A compact checkout response often repeats the product ID without pricing.
+    // Prefer the structured product details from the request to avoid a ghost card.
+    if (!offer.basePlanId && !offer.offerId && !offer.price &&
+        detailedProducts.has(offer.productId)) continue;
     const key = [offer.productId, offer.basePlanId ?? '', offer.offerId ?? ''].join('|');
     const entries = groups.get(key) ?? [];
     entries.push(offer);
