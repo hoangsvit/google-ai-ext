@@ -2,6 +2,8 @@
 
 Chrome / Edge extension using WXT, TypeScript and Manifest V3. Opens Google One and **automatically** detects visible plan cards and supported subscription commerce requests. There is no manual scan button.
 
+> **Giới hạn quan trọng:** Nút **Thử** của extension không thể tự gửi yêu cầu mua một SKU ẩn bất kỳ. Các HAR trước đó có bằng chứng luồng Play Commerce với SKU ẩn, nhưng chưa có API công khai hay quyền ưu đãi được xác minh để tái tạo luồng này. Xem [nghiên cứu Google One Web checkout và flow đề xuất](docs/google-one-web-checkout-research.md) trước khi phát triển tiếp.
+
 ## What happens on opening Google One?
 
 1. Visit https://one.google.com/ai or the official Google AI plans page.
