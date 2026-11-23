@@ -34,11 +34,11 @@ export function collectVisibleOffers(doc: Document): Offer[] {
     let ancestor: HTMLElement | null = node;
     for (let depth = 0; depth < 8 && ancestor; depth++, ancestor = ancestor.parentElement) {
       if (ancestor === doc.body) break;
-      const text = (ancestor.innerText || ancestor.textContent || '').replace(/\\s+/g, ' ').trim();
+      const text = (ancestor.innerText || ancestor.textContent || '').replace(/\s+/g, ' ').trim();
       if (text.length > 1300) break;
       // Keep the nearest compact group carrying a recognizable plan and price.
       if (text.length >= 24 && PLAN_PATTERN.test(text) &&
-          /(?:₫|VND|USD|\\$|€|£)/i.test(text)) {
+          /(?:₫|VND|USD|\$|€|£)/i.test(text)) {
         add(ancestor);
         break;
       }
