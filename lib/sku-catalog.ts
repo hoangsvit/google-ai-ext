@@ -15,7 +15,7 @@ export interface TrySku {
 /** Public SKU/price metadata seen in prior sanitized HAR/HTML snapshots.
  * These are examples for UI research; NOT eligibility guarantees.
  */
-export const REFERENCE_SKUS: ReadonlyArray<Omit<TrySku, 'observedNow'>> = [
+export const REFERENCE_SKUS: ReadonlyArray<Omit<TrySku, 'observedNow' | 'evidence' | 'evidenceHar'>> = [
   { productId: 'g1.helium.m', plan: 'Google AI Plus 400 GB', expectedPrice: '132.000 ₫', currency: 'VND', basePlanId: 'monthly', billingPeriod: 'P1M' },
   { productId: 'g1.helium.a', plan: 'Google AI Plus 400 GB', expectedPrice: '1.319.000 ₫', currency: 'VND', basePlanId: 'annual', billingPeriod: 'P1Y' },
   { productId: 'g1.2tb.ai', plan: 'Google AI Pro 5 TB', expectedPrice: '489.000 ₫', currency: 'VND', basePlanId: 'p1m', billingPeriod: 'P1M' },
