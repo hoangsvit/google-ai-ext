@@ -22,19 +22,16 @@
       <button id="open" class="primary" type="button">Mở Google One</button>
       <button id="reload" class="secondary" type="button">Tải lại trang</button>
     </div>
-    <details class="fold" open>
-      <summary>Chọn SKU thực tế → mở checkout Google</summary>
-      <p>Chọn SKU và giá vừa phát hiện trên tab Google One. Extension sẽ tìm đúng nút đăng ký có SKU và giá đó. Không gửi SKU giả hoặc tự thanh toán.</p>
-      <label for="official-choice">SKU muốn đăng ký</label>
-      <select id="official-choice">
-        <option value="">Đang đọc các SKU trên trang...</option>
-      </select>
-      <div class="official-actions">
-        <button id="official-preview" class="secondary" type="button" disabled>Kiểm tra nút đăng ký</button>
-        <button id="official-launch" class="primary" type="button" disabled>Mở checkout Google</button>
+    <section class="sku-trial-section" aria-labelledby="sku-trial-heading">
+      <div class="section-header">
+        <h2 id="sku-trial-heading">Danh sách SKU · Bấm Thử</h2>
+        <span id="sku-trial-count" class="counter">0</span>
       </div>
-      <p id="official-status" class="hint" role="status">Chỉ tiếp tục khi Google có nút đăng ký tương ứng. Giá, Base Plan và quyền ưu đãi phải được kiểm tra lại tại checkout.</p>
-    </details>
+      <p class="sku-trial-intro">Hiện tất cả SKU tham khảo và SKU mới bắt được. Chỉ mở gói nếu Google có nút đăng ký đúng SKU/giá. Không tự thanh toán.</p>
+      <div id="sku-try-list" class="sku-trial-list">
+        <div class="empty">Đang tải danh sách SKU...</div>
+      </div>
+    </section>
     <section class="result-section" aria-labelledby="rpc-title">
       <div class="section-header"><h2 id="rpc-title">SKU từ HTML / request / response</h2><span id="rpc-count" class="counter">0</span></div>
       <div id="network-results" class="results" aria-live="polite"><div class="empty">Chưa có dữ liệu RPC.</div></div>

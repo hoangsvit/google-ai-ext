@@ -42,31 +42,24 @@ bootstrap catalog does not guarantee Google will permit checkout at that price.
 The original saved HTML, account attributes and billing tokens are **not committed**;
 tests use synthetic, sanitized equivalents.
 
-## SKU-specific official checkout entry
+## One-click SKU research list
 
-**Use the new selector at the top of the popup:** Open a signed-in
-`one.google.com` tab, let the inspector automatically capture the
-catalog, then choose a **SKU actually captured from that tab**, including
-its observed VND price. The selector is dynamically built from the
-current tab's metadata, *not* from hard-coded demo or invented checkout
-options. HAR imports cannot authorize a checkout selection.
+The popup shows every SKU from the previously observed and sanitized Google One
+HTML/HAR records, even when Google does not include that SKU in the current session.
+Current-session SKUs are also merged automatically. Every row has **one "Thử"**
+button; no dropdown, preview step, or separate launch button is needed.
 
-Click **Kiểm tra nút đăng ký**: the extension searches for the one visible
-Google One plan-entry element whose `jslog` references that exact SKU,
-with the same price visible next to it. It highlights the real button.
-Only then does **Mở checkout Google** become enabled. Clicking it invokes
-the existing Google One CTA once, so the site's own code may make its
-normal authenticated requests. No purchase is completed automatically.
+Clicking "Thử" only looks for an **existing visible Google One entry button**
+with the exact SKU in its \`jslog\` metadata and the corresponding price near
+that same button. When exactly one safe button matches, it clicks that existing
+Google button, potentially opening Google's official checkout. It **never**
+automatically confirms or completes a purchase.
 
-**Crucial:** A product ID and displayed price do not reveal all
-session-bound checkout parameters or prove eligibility for a particular
-`basePlanId`, `offerId` or student/discount offer. The extension does
-**not** assemble private Play Commerce purchase RPCs, override Google
-responses, reuse offer tokens or invent entitlement. If a catalog SKU
-has no matching live CTA, the extension refuses to proceed. If Google
-rejects checkout or a browser-generated click is ignored, the user must
-inspect the official page. Final purchase and pricing verification remain
-Google's responsibility.
+Older SKUs are clearly marked *tham khảo*; a historical or unlisted SKU is not
+proof that Google currently offers it or that the account is eligible. If
+there is no matching official button, the popup reports that result instead
+of assembling a private Play Billing request, guessing a URL, or substituting
+a different SKU/price. Tokens, cookies and payment data are never replayed.
 
 ## Other features
 

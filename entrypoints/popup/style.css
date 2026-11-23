@@ -44,3 +44,16 @@ h2{font-size:12px;margin:0}
 .bottom{margin:18px 0 0;padding-top:12px;border-top:1px solid #314465;display:flex;flex-direction:column;gap:9px;font-size:10px;line-height:1.5;color:#7f96bb}
 .text-button{padding:0;border:0;background:none;color:#a6bfe8;text-align:left;font-size:10px;font-weight:500}
 .bottom a{color:#a6c9ff;text-decoration:none}
+
+.sku-trial-section{margin:15px 0;border:1px solid #3c6090;border-radius:12px;background:#11213d;padding:12px}
+.sku-trial-intro{font-size:10px;color:#b2c7e5;line-height:1.6;margin:0 0 9px}
+.sku-trial-list{display:flex;flex-direction:column;gap:8px;max-height:330px;overflow-y:auto;scrollbar-width:thin}
+.try-sku-card{padding:10px;border-radius:10px;border:1px solid #36527c;background:#182b4b}
+.try-sku-heading{display:flex;align-items:center;gap:9px;justify-content:space-between}
+.try-sku-details{min-width:0;flex:1}
+.try-sku-name{font-size:12px;font-weight:750;margin-bottom:4px}
+.try-sku-price{font-size:14px;font-weight:750;margin:5px 0}
+.try-sku-origin{font-size:10px;color:#9dd9c9;line-height:1.4}
+.try-sku-button{flex:0 0 auto;min-width:65px;padding:10px 12px}
+.try-sku-result{font-size:10px;line-height:1.6;color:#b7d5ff;margin:7px 0 0;min-height:0}
+.try-sku-result:empty{display:none}
