@@ -53,7 +53,7 @@ test('popup wires search and every source tab, and does not add synthetic checko
   assert.match(main,/renderTrialSummary\(\)/);
   assert.match(main,/skuTryResults/);
   assert.match(html,/Phân tích kỹ thuật &amp; HAR/);
-  assert.match(css,/\\.filters\\{display:grid/);
-  assert.match(css,/\\.sku-trial-list\\{display:flex;flex-direction:column;gap:8px\}/);
+  assert.match(css,/\.filters\{display:grid/);
+  assert.match(css,/\.sku-trial-list\{display:flex;flex-direction:column;gap:8px\}/);
   assert.doesNotMatch(main,/offerIdToken|skuDetailsToken/);
 });
