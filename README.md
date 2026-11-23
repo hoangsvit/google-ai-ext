@@ -42,6 +42,23 @@ bootstrap catalog does not guarantee Google will permit checkout at that price.
 The original saved HTML, account attributes and billing tokens are **not committed**;
 tests use synthetic, sanitized equivalents.
 
+## Compact popup design matching the approved visual
+
+The extension popup has a **single 420 × 600px scrolling surface**, not a
+desktop dashboard. Its navigation follows the approved dark-navy/purple
+prototype: ePlus.DEV toolbar with working refresh, diagnostics and official
+Google One actions; Google One header; live connection strip; **three stats
+(distinct SKUs, historical Commerce SKUs, and price/Base Plan choices)**;
+search; four filter chips; and **four SKU cards per page**.
+
+Each card presents a compact icon, plan name, copyable product ID, truthful
+source tags, a price/period and one purple **Thử** action. Pagination, search,
+filter chips, copy, technical settings and the sticky **Hướng dẫn / Xem chi
+tiết lần thử** footer are interactive. Detailed RPC/HAR analysis is collapsed
+by default. The popup uses historical and current-session product metadata;
+it does not hardcode the visual prototype's example values or simulate
+a successful Google checkout.
+
 ## Popup interface — SKU Explorer
 
 The Chrome/Edge popup has one main scrollbar (no nested SKU-scroll area):

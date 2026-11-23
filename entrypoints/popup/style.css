@@ -118,3 +118,6 @@ h2{font-size:11px;margin:6px 0}
 .help-panel{padding:10px 12px;font-size:10px;line-height:1.5}
 .help-panel p{margin:0 0 6px}
 .help-panel a{color:#b6cdff}
+
+/* Keep diagnostics in the popup status tooltip, not as an extra line above cards. */
+.activity{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

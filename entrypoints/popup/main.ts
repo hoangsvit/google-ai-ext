@@ -455,6 +455,10 @@ function renderTrySkuList() {
       result.textContent = message;
     };
     copy.addEventListener('click', () => {
+      if (!navigator.clipboard?.writeText) {
+        setResult('Trình duyệt không hỗ trợ sao chép tự động.');
+        return;
+      }
       void navigator.clipboard.writeText(choice.productId)
         .then(() => setResult('Đã sao chép SKU: ' + choice.productId))
         .catch(() => setResult('Không sao chép được SKU. Hãy chọn mã để sao chép.'));
