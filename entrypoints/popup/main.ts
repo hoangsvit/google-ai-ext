@@ -18,6 +18,7 @@ interface TabCapture {
   trial: TrialState | null;
 }
 
+const liveState = document.querySelector<HTMLElement>('#live-state')!;
 const connection = document.querySelector<HTMLElement>('#connection')!;
 const activity = document.querySelector<HTMLElement>('#activity')!;
 const networkResults = document.querySelector<HTMLElement>('#network-results')!;
@@ -73,7 +74,7 @@ function renderTrialSummary(): void {
     status === 'request-observed' ? 'Có RPC' :
     status === 'cta-clicked' ? 'Đã nhấn nút' : 'Đang kiểm tra';
   trialState.className = status === 'no-cta' ? 'status-warn' :
-    status === 'response-observed' ? 'status-ok' : 'status-neutral';
+    status === 'response-observed' ? 'status-received' : 'status-neutral';
   trialDetail.textContent = state.productId + ' · ' + formatTrialStatus(state);
 }
 
@@ -162,6 +163,8 @@ function renderLive() {
   if (importedHar) return;
   renderTrySkuList();
   renderTrialSummary();
+  liveState.dataset.state = activeId === null ? 'offline' :
+    snapshot.connected ? 'online' : 'pending';
   connection.textContent = activeId === null
     ? 'Chưa mở Google One trong tab hiện tại'
     : snapshot.connected ? 'Đang theo dõi Google One tự động' : 'Đang chờ kết nối Google One…';

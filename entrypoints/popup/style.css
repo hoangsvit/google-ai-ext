@@ -75,3 +75,8 @@ h2{font-size:12px;line-height:1.35;font-weight:760;margin:0}
 .bottom{margin-top:14px;border-top:1px solid #2b4160;padding-top:10px;color:#8199bc;font-size:10px;line-height:1.5}
 .bottom p{margin:0 0 7px}
 .bottom a{color:#a8c8f6;text-decoration:none}
+
+/* Evidence is not a successful purchase: use neutral blue for RPC received. */
+.status-received{border:1px solid #4d78b6;border-radius:99px;padding:4px 8px;font-size:9px;white-space:nowrap;font-weight:700;color:#b7d4ff;background:#19334f}
+.live-state[data-state="offline"] .pulse{background:#94a3b8;box-shadow:0 0 0 3px #94a3b825}
+.live-state[data-state="pending"] .pulse{background:#ffcb71;box-shadow:0 0 0 3px #ffcb7125}
