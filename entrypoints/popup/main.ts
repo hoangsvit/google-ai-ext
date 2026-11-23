@@ -134,8 +134,12 @@ function renderLive() {
   activity.textContent = activeId === null
     ? 'Mở Google One rồi quay lại popup để xem các kết quả tự động.'
     : 'Đã quan sát ' + snapshot.networkEvents + ' lượt RPC · ' +
-      currentSkuRows().filter((row) => row.source === 'bootstrap' || row.source === 'page').length +
-      ' bản ghi SKU từ HTML · ' +
+      new Set([
+        ...currentSkuRows().filter((row) => row.source === 'bootstrap' || row.source === 'page')
+          .map((row) => row.productId),
+        ...visibleSkuIds,
+      ]).size +
+      ' SKU nhận diện từ HTML/nút đăng ký · ' +
       currentSkuRows().filter((row) => row.source === 'request' || row.source === 'response').length +
       ' bản ghi từ mạng · ' + snapshot.dom.length +
       ' gói từ giao diện. Chỉ lưu trong phiên trình duyệt.';
