@@ -1,4 +1,4 @@
-import { createDemoOffer, type DemoVariant } from './demo-offer';
+import { createDemoOffer, type DemoVariant } from './demo-offer.ts';
 
 export const LAB_CATALOG_URL = 'https://response-lab.invalid/commerce/catalog';
 export const LAB_CHECKOUT_URL = 'https://response-lab.invalid/commerce/checkout';
