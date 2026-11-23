@@ -54,6 +54,7 @@ h2{font-size:12px;margin:0}
 .try-sku-name{font-size:12px;font-weight:750;margin-bottom:4px}
 .try-sku-price{font-size:14px;font-weight:750;margin:5px 0}
 .try-sku-origin{font-size:10px;color:#9dd9c9;line-height:1.4}
+.try-sku-evidence{font-size:10px;color:#97b5df;line-height:1.4;margin-top:3px;overflow-wrap:anywhere}
 .try-sku-button{flex:0 0 auto;min-width:65px;padding:10px 12px}
 .try-sku-result{font-size:10px;line-height:1.6;color:#b7d5ff;margin:7px 0 0;min-height:0}
 .try-sku-result:empty{display:none}

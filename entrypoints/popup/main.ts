@@ -3,7 +3,7 @@ import { extractHarNetworkOffers, isNetworkOffer, uniqueNetworkOffers, type Netw
 import { assessOffers, type OfferStatus } from '../../lib/offer-assessment';
 import { compareBasePlans } from '../../lib/base-plan-comparison';
 import { isOfficialGoogleOneUrl, OFFICIAL_GOOGLE_AI_PLANS_URL } from '../../lib/official-google-one';
-import { buildTrySkuList } from '../../lib/sku-catalog';
+import { buildTrySkuList, historicalSkuCount } from '../../lib/sku-catalog';
 import { formatTrialStatus, type TrialState } from '../../lib/trial-observer';
 import type { Offer } from '../../lib/offers';
 import './style.css';
@@ -291,7 +291,7 @@ viewLive.addEventListener('click', () => {
 
 function renderTrySkuList() {
   const items = buildTrySkuList(currentSkuRows());
-  skuTrialCount.textContent = String(items.length);
+  skuTrialCount.textContent = String(new Set(items.map((item) => item.productId)).size);
   skuTryList.replaceChildren();
   if (!items.length) {
     emptyMessage(skuTryList, 'Chưa có SKU tham khảo.');
@@ -310,7 +310,13 @@ function renderTrySkuList() {
     details.append(element('div', 'try-sku-origin',
       hasCta ? 'Có nút đăng ký SKU trên trang' :
         choice.observedNow ? 'Đã phát hiện SKU, chưa có nút đăng ký' :
-        'SKU tham khảo · chưa phát hiện phiên này'));
+        choice.evidence === 'commerce-har'
+          ? 'Lịch sử: đã thấy RPC Play Commerce · không chứng minh quyền mua'
+          : 'SKU từ HTML trước đó · chưa phát hiện phiên này'));
+    if (choice.evidenceHar) {
+      details.append(element('div', 'try-sku-evidence',
+        'Nguồn: ' + choice.evidenceHar));
+    }
     if (choice.basePlanId) details.append(element('div', 'meta', 'Base Plan tham khảo: ' + choice.basePlanId));
     const button = element('button', 'primary try-sku-button', 'Thử');
     button.type = 'button';

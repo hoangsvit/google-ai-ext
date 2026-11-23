@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { REFERENCE_SKUS, buildTrySkuList } from '../lib/sku-catalog.ts';
+import { REFERENCE_SKUS, buildTrySkuList, COMMERCE_HAR_EVIDENCE, historicalSkuCount } from '../lib/sku-catalog.ts';
 
 const row = (productId, price, source='bootstrap') => ({
   productId, plan:'Google AI Pro', basePlanId:'monthly',
@@ -43,4 +43,46 @@ test('single Try click only initiates matching official entry CTA, not payment',
   assert.match(popup,/skuTryList\.append\(card\)/);
   assert.match(html,/id="sku-try-list"/);
   assert.doesNotMatch(popup,/G1_SKU_PREVIEW|G1_SKU_OPEN/);
+});
+
+
+test('all 9 distinct SKUs from the five HARs and Google One HTML have evidence metadata', () => {
+  const data = buildTrySkuList([]);
+  assert.equal(historicalSkuCount, 9);
+  assert.equal(data.length, 10, 'two base-plan prices for the same Pro student SKU');
+  assert.equal(new Set(data.map((item) => item.productId)).size, 9);
+  const commerce = [
+    ['g1.20tb.v2', 'one.google.com.har'],
+    ['g1.play.sapphire', 'one.google.com(2).har'],
+    ['g1.play.2tb.ai.student', 'one.google.com(2).har'],
+    ['g1.play.helium.student', 'one.google.com(3).har'],
+  ];
+  for (const [sku, har] of commerce) {
+    assert.match(COMMERCE_HAR_EVIDENCE[sku] ?? '', new RegExp(har.replace(/[().]/g, '\\$&')));
+    const matches = data.filter((item) => item.productId === sku);
+    assert.ok(matches.length > 0, sku);
+    for (const item of matches) {
+      assert.equal(item.evidence, 'commerce-har');
+      assert.match(item.evidenceHar ?? '', new RegExp(har.replace(/[().]/g, '\\$&')));
+      assert.equal(item.observedNow, false);
+    }
+  }
+  const htmlOnly = data.find((item) => item.productId === 'g1.helium.a');
+  assert.equal(htmlOnly?.evidence, 'html-catalog');
+  assert.equal(htmlOnly?.evidenceHar, null);
+});
+
+test('new unseen Google SKU is live-only and historical Commerce evidence is preserved', () => {
+  const rows = buildTrySkuList([
+    row('g1.play.helium.student', '132.000 ₫'),
+    row('g1.play.extra.observed', '199.000 ₫'),
+  ]);
+  const observed = rows.find((item) => item.productId === 'g1.play.helium.student');
+  assert.equal(observed?.evidence, 'commerce-har');
+  assert.equal(observed?.observedNow, true);
+  const latest = rows.find((item) => item.productId === 'g1.play.extra.observed');
+  assert.equal(latest?.evidence, 'live-only');
+  assert.equal(latest?.evidenceHar, null);
+  assert.equal(latest?.observedNow, true);
+  assert.equal(rows[0]?.observedNow, true, 'show live data first');
 });

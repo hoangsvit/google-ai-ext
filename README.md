@@ -42,6 +42,28 @@ bootstrap catalog does not guarantee Google will permit checkout at that price.
 The original saved HTML, account attributes and billing tokens are **not committed**;
 tests use synthetic, sanitized equivalents.
 
+## Catalog SKU sources and evidence (23/11/2026)
+
+The catalog includes **9 unique Google One product IDs and 10 plan/price
+choices** from five locally inspected HARs and the saved Google One HTML.
+No additional verified product ID was found beyond the existing catalog,
+so the extension now labels their actual **source and evidence** instead
+of adding invented SKUs.
+
+| SKU | Evidence | Historical source |
+|---|---|---|
+| `g1.20tb.v2` | HTML + Play Commerce RPC | `one.google.com.har`, `one.google.com(1).har` |
+| `g1.play.sapphire` | Play Commerce RPC | `one.google.com(2).har` |
+| `g1.play.2tb.ai.student` | Play Commerce RPC (monthly and monthly-transit prices) | `one.google.com(2).har` |
+| `g1.play.helium.student` | Play Commerce RPC | `one.google.com(3).har` |
+| `g1.helium.m`, `g1.helium.a`, `g1.2tb.ai`, `g1.2tb.ai.annual`, `g1.ai.pro` | HTML catalog; `g1.2tb.ai` also seen in subscriptions RPC | Saved HTML / HAR |
+
+A Commerce RPC **HTTP 200** in a saved HAR means there was a response to
+a Commerce request. It is *not* a successful purchase, proof of user
+eligibility, or a reusable purchase request. The popup now places live
+SKUs first and marks historical Commerce-backed SKUs separately from
+HTML-only SKUs. No raw HAR data, cookies or checkout tokens are included.
+
 ## One-click SKU research list
 
 The popup shows every SKU from the previously observed and sanitized Google One
