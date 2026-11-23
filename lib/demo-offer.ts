@@ -1,4 +1,4 @@
-import { extractNetworkOffers, type NetworkOffer } from './network-offers';
+import { extractNetworkOffers, type NetworkOffer } from './network-offers.ts';
 
 /**
  * Fictional response-shaped fixture. Reuses the real parser and assessment
