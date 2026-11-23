@@ -1,0 +1,42 @@
+name: Build WXT extension
+
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install pinned dependencies
+        run: npm install --no-audit --no-fund
+      - name: Unit tests
+        run: npm test
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build Chrome / Edge extension (Manifest V3)
+        run: npm run build
+      - name: Create ZIP
+        run: npm run zip
+      - name: Upload unpacked extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: google-ai-ext-chrome-mv3
+          path: .output/chrome-mv3/
+          if-no-files-found: error
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: google-ai-ext-zip
+          path: .output/*.zip
+          if-no-files-found: warn

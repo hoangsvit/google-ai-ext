@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0c1020" />
+    <title>Google One Offer Explorer</title>
+  </head>
+  <body>
+    <main class="app">
+      <div class="brandline">
+        <div class="logo" aria-hidden="true">G<span>1</span></div>
+        <span>ePlus.DEV <span class="separator">/</span> GOOGLE ONE</span>
+        <span class="version">v0.1</span>
+      </div>
+
+      <header>
+        <span class="eyebrow">OFFER INTELLIGENCE</span>
+        <h1>Explore your<br /><em>Google One offers.</em></h1>
+        <p>Đọc thông tin gói đang hiển thị trong trình duyệt, không sửa giá hoặc thanh toán.</p>
+      </header>
+
+      <div class="notice"><span class="dot" aria-hidden="true"></span><strong>Read-only</strong><span>Không thu thập tài khoản, cookie hay dữ liệu thanh toán</span></div>
+
+      <div class="actions">
+        <button id="scan" class="primary" type="button">Quét tab Google One <span aria-hidden="true">↗</span></button>
+        <button id="open" class="secondary" type="button">Mở Google One</button>
+      </div>
+
+      <p id="status" class="status" role="status" aria-live="polite">Mở one.google.com/ai, rồi nhấn Quét tab.</p>
+
+      <section class="results-section" aria-labelledby="results-title">
+        <div class="section-header">
+          <h2 id="results-title">Gói phát hiện</h2>
+          <span id="count" class="count">0</span>
+        </div>
+        <div id="results" class="results" aria-live="polite">
+          <div class="empty">Chưa có dữ liệu. Kết quả chỉ phản ánh nội dung hiển thị trên trang của bạn.</div>
+        </div>
+      </section>
+
+      <details class="manual">
+        <summary>Không quét được? Phân tích nội dung thủ công</summary>
+        <label for="manual-input">Chỉ dán mô tả gói/giá, không dán thông tin cá nhân.</label>
+        <textarea id="manual-input" rows="3" maxlength="1800" placeholder="Google AI Ultra 30 TB, ưu đãi $19.99/tháng trong 3 tháng…"></textarea>
+        <button id="analyze" class="secondary" type="button">Phân tích mô tả</button>
+      </details>
+
+      <footer>
+        <span>Giá và điều kiện thật chỉ được xác nhận tại trang thanh toán chính thức.</span>
+        <a href="https://github.com/hoangsvit/google-ai-ext" target="_blank" rel="noopener noreferrer">Source code ↗</a>
+      </footer>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
