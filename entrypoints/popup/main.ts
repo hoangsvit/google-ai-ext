@@ -4,6 +4,7 @@ import { assessOffers, type OfferStatus } from '../../lib/offer-assessment';
 import { compareBasePlans } from '../../lib/base-plan-comparison';
 import { isOfficialGoogleOneUrl, OFFICIAL_GOOGLE_AI_PLANS_URL } from '../../lib/official-google-one';
 import { buildTrySkuList } from '../../lib/sku-catalog';
+import { countUniqueSku, filterSkuRows, type SkuFilter } from '../../lib/sku-ui';
 import { formatTrialStatus, type TrialState } from '../../lib/trial-observer';
 import type { Offer } from '../../lib/offers';
 import './style.css';
@@ -54,13 +55,7 @@ function currentSkuRows(): NetworkOffer[] {
 }
 let tryInFlight = false;
 const skuTryResults = new Map<string, string>();
-type SkuFilter = 'all' | 'live' | 'commerce' | 'catalog';
 let selectedFilter: SkuFilter = 'all';
-
-function normalizeSearch(value: string): string {
-  return value.toLocaleLowerCase('vi').normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').trim();
-}
 
 function renderTrialSummary(): void {
   const state = snapshot.trial;
@@ -81,21 +76,6 @@ function renderTrialSummary(): void {
     status === 'response-observed' ? 'status-ok' : 'status-neutral';
   trialDetail.textContent = state.productId + ' · ' + formatTrialStatus(state);
 }
-
-function selectedMatches(item: ReturnType<typeof buildTrySkuList>[number]): boolean {
-  const isLive = item.observedNow || visibleSkuIds.includes(item.productId);
-  if (selectedFilter === 'live' && !isLive) return false;
-  if (selectedFilter === 'commerce' && item.evidence !== 'commerce-har') return false;
-  if (selectedFilter === 'catalog' && item.evidence !== 'html-catalog') return false;
-  const search = normalizeSearch(skuSearch.value);
-  if (!search) return true;
-  const haystack = normalizeSearch([
-    item.plan, item.productId, item.expectedPrice,
-    item.basePlanId ?? '', item.evidenceHar ?? '',
-  ].join(' '));
-  return haystack.includes(search);
-}
-
 
 const networkLabels: Record<OfferStatus, string> = {
   trial: 'Có giai đoạn miễn phí',
@@ -341,14 +321,12 @@ viewLive.addEventListener('click', () => {
 
 function renderTrySkuList() {
   const fullList = buildTrySkuList(currentSkuRows());
-  const items = fullList.filter(selectedMatches);
-  const countDistinct = (rows: typeof fullList): number =>
-    new Set(rows.map((item) => item.productId)).size;
-  skuTrialCount.textContent = String(countDistinct(fullList));
-  liveSkuCount.textContent = String(countDistinct(fullList.filter(
+  const items = filterSkuRows(fullList, selectedFilter, skuSearch.value, visibleSkuIds);
+  skuTrialCount.textContent = String(countUniqueSku(fullList));
+  liveSkuCount.textContent = String(countUniqueSku(fullList.filter(
     (item) => item.observedNow || visibleSkuIds.includes(item.productId),
   )));
-  commerceSkuCount.textContent = String(countDistinct(fullList.filter(
+  commerceSkuCount.textContent = String(countUniqueSku(fullList.filter(
     (item) => item.evidence === 'commerce-har',
   )));
   skuResultCount.textContent = items.length + ' lựa chọn' +
