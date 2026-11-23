@@ -31,7 +31,7 @@ test('demo is opt-in in popup and never injected into live network responses', (
   assert.match(html, /id="demo-offer"/);
   assert.match(html, /id="demo-note"/);
   assert.match(popup, /demoOffer\.addEventListener\('click'/);
-  assert.match(popup, /renderNetwork\(createDemoOffer\(\), true\)/);
+  assert.match(popup, /renderNetwork\(createDemoOffer\(selected\), true\)/);
   assert.doesNotMatch(main, /createDemoOffer|DEMO_PRODUCT_ID|DEMO_OFFER_ID/);
   assert.doesNotMatch(popup, /browser\.runtime\.sendMessage\([^\n]*createDemoOffer/);
 });
