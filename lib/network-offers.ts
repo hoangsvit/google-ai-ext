@@ -13,6 +13,8 @@ export interface NetworkOffer {
   currency: string | null;
   billingPeriod: string | null;
   source: NetworkSource;
+  phaseIndex?: number | null;
+  priceMicros?: string | null;
 }
 
 const MAX_BODY = 350_000;
@@ -39,6 +41,11 @@ function safeTitle(value: unknown): string | null {
   if (typeof value !== 'string' || value.length > 130) return null;
   const title = value.replace(/\s+/g, ' ').trim();
   return /google\s*(one|ai\s*(ultra|pro))|ai\s*ultra/i.test(title) ? title : null;
+}
+function safeMicros(value: unknown): string | null {
+  if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return String(value);
+  if (typeof value === 'string' && /^\d{1,19}$/.test(value)) return value;
+  return null;
 }
 function safePeriod(value: unknown): string | null {
   return typeof value === 'string' && value.length <= 14 && BILLING_PERIOD.test(value) ? value : null;
@@ -68,7 +75,8 @@ export function uniqueNetworkOffers(offers: NetworkOffer[]): NetworkOffer[] {
   const result: NetworkOffer[] = [];
   const seen = new Set<string>();
   for (const offer of [...offers].sort((a, b) => scored(b) - scored(a))) {
-    const key = [offer.productId, offer.basePlanId, offer.offerId, offer.price, offer.source].join('|');
+    const key = [offer.productId, offer.basePlanId, offer.offerId, offer.price,
+      offer.phaseIndex ?? '', offer.priceMicros ?? '', offer.source].join('|');
     if (seen.has(key)) continue;
     // A detailed product record supersedes an identifier-only entry from the same payload.
     if (!offer.basePlanId && !offer.offerId && !offer.price && result.some((item) =>
@@ -129,13 +137,15 @@ export function extractNetworkOffers(raw: string, source: NetworkSource): Networ
           records.push({ productId, plan, basePlanId: safeId(d.basePlanId),
             offerId: safeId(d.offerId), price: null, currency: null, billingPeriod: null, source });
         }
-        for (const phase of phases) {
+        for (let phaseIndex = 0; phaseIndex < phases.length; phaseIndex++) {
+          const phase = phases[phaseIndex];
           if (!phase || typeof phase !== 'object' || Array.isArray(phase)) continue;
           const p = phase as Record<string, unknown>;
           records.push({
             productId, plan, basePlanId: safeId(d.basePlanId), offerId: safeId(d.offerId),
             price: safePrice(p.formattedPrice), currency: safeCurrency(p.priceCurrencyCode),
             billingPeriod: safePeriod(p.billingPeriod), source,
+            phaseIndex, priceMicros: safeMicros(p.priceAmountMicros),
           });
         }
       }
@@ -208,5 +218,9 @@ export function isNetworkOffer(value: unknown): value is NetworkOffer {
       .every((field) => field === null || (typeof field === 'string' && field.length <= 130)) &&
     (!candidate.currency || Boolean(safeCurrency(candidate.currency))) &&
     (!candidate.offerId || Boolean(safeId(candidate.offerId))) &&
-    (!candidate.basePlanId || Boolean(safeId(candidate.basePlanId)));
+    (!candidate.basePlanId || Boolean(safeId(candidate.basePlanId))) &&
+    (candidate.phaseIndex === undefined || candidate.phaseIndex === null ||
+      (Number.isInteger(candidate.phaseIndex) && candidate.phaseIndex >= 0 && candidate.phaseIndex < 30)) &&
+    (candidate.priceMicros === undefined || candidate.priceMicros === null ||
+      (typeof candidate.priceMicros === 'string' && /^\d{1,19}$/.test(candidate.priceMicros)));
 }
