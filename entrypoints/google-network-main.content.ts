@@ -17,9 +17,11 @@ export default defineContentScript({
     const emit = (payload: string, source: NetworkSource,
       endpoint: Endpoint, httpStatus: number | null = null) => {
       // Also report allowlisted RPC activity when the response has no SKU.
-      if (payload.length > MAX_BODY) return;
+      // Oversized private checkout payloads are never parsed or posted, but
+      // their RPC/HTTP status can still be observed without raw data.
       try {
-        const offers = payload ? extractNetworkOffers(payload, source) : [];
+        const offers = payload && payload.length <= MAX_BODY
+          ? extractNetworkOffers(payload, source) : [];
         window.postMessage({ kind: MARKER, activity: true, offers,
           rpc: { endpoint, stage: source, httpStatus } }, window.location.origin);
       } catch { /* Never interrupt the host application. */ }
