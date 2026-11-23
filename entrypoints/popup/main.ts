@@ -187,7 +187,12 @@ async function loadLive() {
               typeof id === 'string' && /^g1\.[a-z0-9][a-z0-9._-]{1,79}$/i.test(id)
             ).slice(0, 40) : [];
         if (Array.isArray(value.dom) && value.dom.length) {
-          snapshot = { ...snapshot, connected: true, dom: value.dom.slice(0, 20) };
+          const safeDom = value.dom.filter((item): item is Offer =>
+            !!item && typeof item === 'object' &&
+            'source' in item && item.source === 'page' &&
+            'plan' in item && typeof item.plan === 'string'
+          ).slice(0, 20);
+          snapshot = { ...snapshot, connected: true, dom: safeDom };
         }
       }
     } catch {
