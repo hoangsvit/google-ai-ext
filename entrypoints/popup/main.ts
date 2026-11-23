@@ -36,6 +36,19 @@ const skuTrialCount = document.querySelector<HTMLElement>('#sku-trial-count')!;
 const liveSkuCount = document.querySelector<HTMLElement>('#live-sku-count')!;
 const commerceSkuCount = document.querySelector<HTMLElement>('#commerce-sku-count')!;
 const skuResultCount = document.querySelector<HTMLElement>('#sku-result-count')!;
+const basePlanCount = document.querySelector<HTMLElement>('#base-plan-count')!;
+const allFilterCount = document.querySelector<HTMLElement>('#all-filter-count')!;
+const commerceFilterCount = document.querySelector<HTMLElement>('#commerce-filter-count')!;
+const htmlFilterCount = document.querySelector<HTMLElement>('#html-filter-count')!;
+const skuPagePrev = document.querySelector<HTMLButtonElement>('#sku-page-prev')!;
+const skuPageNext = document.querySelector<HTMLButtonElement>('#sku-page-next')!;
+const skuPageLabel = document.querySelector<HTMLElement>('#sku-page-label')!;
+const settingsToggle = document.querySelector<HTMLButtonElement>('#settings-toggle')!;
+const helpToggle = document.querySelector<HTMLButtonElement>('#help-toggle')!;
+const showTrial = document.querySelector<HTMLButtonElement>('#show-trial')!;
+const technicalPanel = document.querySelector<HTMLDetailsElement>('#technical-panel')!;
+const helpPanel = document.querySelector<HTMLDetailsElement>('#help-panel')!;
+const trialPanel = document.querySelector<HTMLDetailsElement>('#trial-panel')!;
 const skuSearch = document.querySelector<HTMLInputElement>('#sku-search')!;
 const filterButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-sku-filter]'));
 const trialState = document.querySelector<HTMLElement>('#trial-state')!;
@@ -57,6 +70,8 @@ function currentSkuRows(): NetworkOffer[] {
 let tryInFlight = false;
 const skuTryResults = new Map<string, string>();
 let selectedFilter: SkuFilter = 'all';
+const PAGE_SIZE = 4;
+let currentPage = 0;
 
 function renderTrialSummary(): void {
   const state = snapshot.trial;
@@ -180,6 +195,7 @@ function renderLive() {
       currentSkuRows().filter((row) => row.source === 'request' || row.source === 'response').length +
       ' bản ghi từ mạng · ' + snapshot.dom.length +
       ' gói từ giao diện. Chỉ lưu trong phiên trình duyệt.';
+  liveState.title = activity.textContent ?? '';
   renderNetwork(currentSkuRows(), snapshot.networkEvents);
   renderDom(snapshot.dom);
 }
@@ -325,50 +341,112 @@ viewLive.addEventListener('click', () => {
 function renderTrySkuList() {
   const fullList = buildTrySkuList(currentSkuRows());
   const items = filterSkuRows(fullList, selectedFilter, skuSearch.value, visibleSkuIds);
+  const liveItems = fullList.filter((item) =>
+    item.observedNow || visibleSkuIds.includes(item.productId));
+  const commerceItems = fullList.filter((item) => item.evidence === 'commerce-har');
+  const catalogItems = fullList.filter((item) => item.evidence === 'html-catalog');
   skuTrialCount.textContent = String(countUniqueSku(fullList));
-  liveSkuCount.textContent = String(countUniqueSku(fullList.filter(
-    (item) => item.observedNow || visibleSkuIds.includes(item.productId),
-  )));
-  commerceSkuCount.textContent = String(countUniqueSku(fullList.filter(
-    (item) => item.evidence === 'commerce-har',
-  )));
-  skuResultCount.textContent = items.length + ' lựa chọn' +
-    (items.length === fullList.length ? '' : ' / ' + fullList.length);
+  allFilterCount.textContent = String(countUniqueSku(fullList));
+  liveSkuCount.textContent = String(countUniqueSku(liveItems));
+  commerceSkuCount.textContent = String(countUniqueSku(commerceItems));
+  commerceFilterCount.textContent = String(countUniqueSku(commerceItems));
+  htmlFilterCount.textContent = String(countUniqueSku(catalogItems));
+  basePlanCount.textContent = String(fullList.length);
+  const pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  currentPage = Math.min(currentPage, pageCount - 1);
+  const pageStart = currentPage * PAGE_SIZE;
+  const visibleItems = items.slice(pageStart, pageStart + PAGE_SIZE);
+  skuResultCount.textContent = items.length
+    ? 'Hiển thị ' + (pageStart + 1) + '–' +
+      (pageStart + visibleItems.length) + ' / ' + items.length + ' lựa chọn'
+    : '0 lựa chọn';
+  skuPageLabel.textContent = (currentPage + 1) + ' / ' + pageCount;
+  skuPagePrev.disabled = currentPage === 0;
+  skuPageNext.disabled = currentPage >= pageCount - 1;
   skuTryList.replaceChildren();
-  if (!items.length) {
-    emptyMessage(skuTryList, 'Không tìm thấy SKU phù hợp. Thử bộ lọc hoặc từ khóa khác.');
+  if (!visibleItems.length) {
+    emptyMessage(skuTryList, 'Không tìm thấy SKU. Thử bộ lọc hoặc từ khóa khác.');
     return;
   }
-  for (const choice of items) {
+
+  for (const choice of visibleItems) {
+    const resultKey = [
+      choice.productId, choice.expectedPrice, choice.billingPeriod ?? '',
+    ].join('|');
     const card = element('article', 'try-sku-card');
+    const isActive = snapshot.trial?.productId === choice.productId &&
+      snapshot.trial.expectedPrice === choice.expectedPrice;
+    card.dataset.active = String(isActive);
     const heading = element('div', 'try-sku-heading');
+
+    const kind = /ultra/i.test(choice.plan) ? 'ultra'
+      : /pro/i.test(choice.plan) ? 'pro'
+      : /student/i.test(choice.productId) ? 'student' : 'plus';
+    const symbols: Record<string, string> = {
+      ultra: '💎', pro: '👑', student: '🎓', plus: '✦',
+    };
+    const art = element('span', 'sku-art', symbols[kind]);
+    art.dataset.kind = kind;
+    art.setAttribute('aria-hidden', 'true');
+
     const details = element('div', 'try-sku-details');
     details.append(element('div', 'try-sku-name', choice.plan));
-    details.append(element('div', 'sku', choice.productId));
-    const price = element('div', 'try-sku-price', choice.expectedPrice +
-      (choice.billingPeriod === 'P1Y' ? '/năm' : choice.billingPeriod === 'P1M' ? '/tháng' : ''));
-    details.append(price);
+    const skuLine = element('div', 'sku-line');
+    skuLine.append(element('span', 'sku', choice.productId));
+    const copy = element('button', 'copy-sku', '▢');
+    copy.type = 'button';
+    copy.title = 'Sao chép SKU';
+    copy.setAttribute('aria-label', 'Sao chép SKU ' + choice.productId);
+    skuLine.append(copy);
+    details.append(skuLine);
+
+    const badges = element('div', 'sku-badges');
     const hasCta = visibleSkuIds.includes(choice.productId);
-    const label = hasCta ? 'Có nút Google trên trang' :
-      choice.observedNow ? 'SKU được phát hiện phiên này' :
-      choice.evidence === 'commerce-har'
-        ? 'Từng có Play Commerce · HAR lịch sử'
-        : 'SKU chỉ từ HTML lịch sử';
-    const origin = element('div', 'try-sku-origin', label);
-    origin.dataset.evidence = choice.evidence === 'commerce-har'
-      ? 'commerce' : choice.observedNow || hasCta ? 'live' : 'html';
-    details.append(origin);
+    const originText = hasCta ? '✓ Có nút Google'
+      : choice.observedNow ? '✓ Phiên này'
+      : choice.evidence === 'commerce-har' ? '◆ Có Commerce' : 'HTML';
+    const origin = element('span', 'try-sku-origin', originText);
+    origin.dataset.evidence = hasCta || choice.observedNow
+      ? 'live' : choice.evidence === 'commerce-har' ? 'commerce' : 'html';
+    origin.title = hasCta ? 'Trang có nút đăng ký đúng SKU'
+      : choice.observedNow ? 'Metadata quan sát trong phiên này'
+      : choice.evidence === 'commerce-har'
+        ? 'Đã thấy RPC trong HAR cũ, không bảo đảm đủ điều kiện'
+        : 'Chỉ thấy trong HTML lịch sử';
+    badges.append(origin);
     if (choice.evidenceHar) {
-      details.append(element('div', 'try-sku-evidence',
-        'Nguồn: ' + choice.evidenceHar));
+      const match = choice.evidenceHar.match(/one\.google\.com(\(\d+\))?\.har/);
+      const sourceName = match
+        ? 'HAR ' + (match[1] ?? '(1)')
+        : 'HAR';
+      const evidence = element('span', 'try-sku-evidence', '▤ ' + sourceName);
+      evidence.title = choice.evidenceHar;
+      badges.append(evidence);
     }
-    if (choice.basePlanId) details.append(element('div', 'meta', 'Base plan: ' + choice.basePlanId));
-    const button = element('button', 'primary try-sku-button', 'Thử');
+    if (choice.basePlanId) {
+      const base = element('span', 'try-sku-evidence', choice.basePlanId);
+      base.title = 'Base Plan (metadata tham khảo)';
+      badges.append(base);
+    }
+    details.append(badges);
+
+    const side = element('div', 'try-sku-side');
+    const price = element('div', 'try-sku-price');
+    price.append(element('strong', '', choice.expectedPrice));
+    if (choice.billingPeriod) {
+      const suffix = choice.billingPeriod === 'P1Y' ? '/năm'
+        : choice.billingPeriod === 'P1M' ? '/tháng' : '';
+      if (suffix) price.append(element('small', '', suffix));
+    }
+    side.append(price);
+    const button = element('button', 'try-sku-button', '▷ Thử');
     button.type = 'button';
-    const resultKey = [choice.productId, choice.expectedPrice, choice.billingPeriod ?? ''].join('|');
-    const observed = snapshot.trial &&
-      snapshot.trial.productId === choice.productId &&
-      snapshot.trial.expectedPrice === choice.expectedPrice
+    button.setAttribute('aria-label',
+      'Thử mở gói ' + choice.productId + ' qua Google One');
+    side.append(button);
+    heading.append(art, details, side);
+
+    const observed = isActive && snapshot.trial
       ? formatTrialStatus(snapshot.trial) : null;
     const result = element('p', 'try-sku-result',
       observed ?? skuTryResults.get(resultKey) ?? '');
@@ -376,6 +454,12 @@ function renderTrySkuList() {
       skuTryResults.set(resultKey, message);
       result.textContent = message;
     };
+    copy.addEventListener('click', () => {
+      void navigator.clipboard.writeText(choice.productId)
+        .then(() => setResult('Đã sao chép SKU: ' + choice.productId))
+        .catch(() => setResult('Không sao chép được SKU. Hãy chọn mã để sao chép.'));
+    });
+
     button.addEventListener('click', () => {
       if (tryInFlight) return;
       void (async () => {
@@ -386,7 +470,7 @@ function renderTrySkuList() {
         try {
           const tabId = await currentGoogleTab();
           if (tabId === null) {
-            setResult('Hãy mở tab Google One trước, rồi bấm Thử lại.');
+            setResult('Hãy mở Google One rồi nhấn Thử lại.');
             return;
           }
           const selection = {
@@ -402,7 +486,7 @@ function renderTrySkuList() {
           });
           if (!started || typeof started !== 'object' || !('ok' in started) ||
               started.ok !== true) {
-            setResult('Không khởi tạo được theo dõi request cho SKU này.');
+            setResult('Không khởi tạo được theo dõi yêu cầu cho SKU này.');
             return;
           }
           let clicked = false;
@@ -418,34 +502,60 @@ function renderTrySkuList() {
               kind: 'G1_TRIAL_FINISH', tabId, clicked,
             }).catch(() => {});
           }
-          const message = reply && typeof reply === 'object' && 'message' in reply &&
-            typeof reply.message === 'string' ? reply.message : null;
-          setResult(message ?? 'Chưa xác định được kết quả. Xem tab Google One.');
-          // Reading again picks up endpoint + HTTP status even when the popup
-          // did not observe an intermediate storage change.
+          const message = reply && typeof reply === 'object' &&
+            'message' in reply && typeof reply.message === 'string'
+              ? reply.message : null;
+          setResult(message ?? 'Chưa rõ kết quả. Xem tab Google One.');
           await loadLive();
         } catch {
-          setResult('Không kết nối được Google One. Tải lại trang rồi thử lại.');
+          setResult('Không kết nối được Google One. Tải lại tab rồi thử lại.');
         } finally {
           tryInFlight = false;
           button.disabled = false;
-          button.textContent = 'Thử';
+          button.textContent = '▷ Thử';
         }
       })();
     });
-    heading.append(details, button);
     card.append(heading, result);
     skuTryList.append(card);
   }
 }
 
-skuSearch.addEventListener('input', () => renderTrySkuList());
+skuSearch.addEventListener('input', () => {
+  currentPage = 0;
+  renderTrySkuList();
+});
+skuPagePrev.addEventListener('click', () => {
+  if (currentPage > 0) {
+    currentPage -= 1;
+    renderTrySkuList();
+  }
+});
+skuPageNext.addEventListener('click', () => {
+  currentPage += 1;
+  renderTrySkuList();
+});
+settingsToggle.addEventListener('click', () => {
+  technicalPanel.open = true;
+  technicalPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+});
+helpToggle.addEventListener('click', () => {
+  helpPanel.open = !helpPanel.open;
+  if (helpPanel.open) {
+    helpPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+});
+showTrial.addEventListener('click', () => {
+  trialPanel.open = true;
+  trialPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+});
 for (const button of filterButtons) {
   button.addEventListener('click', () => {
     const filter = button.dataset.skuFilter;
     if (filter !== 'all' && filter !== 'live' &&
         filter !== 'commerce' && filter !== 'catalog') return;
     selectedFilter = filter;
+    currentPage = 0;
     for (const item of filterButtons) {
       item.setAttribute('aria-pressed', String(item === button));
     }
