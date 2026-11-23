@@ -85,7 +85,7 @@ export function extractJslogOffers(doc: Document): NetworkOffer[] {
       // Restrict matching to the CTA's close ancestors to avoid another card's price.
       if (text.length > 1300) break;
       const found = text.match(VND_PRICE);
-      if (found) {
+      if (found?.[1]) {
         price = found[1].replace(/,/g, '.') + ' ₫';
         period = /\/\s*(?:năm|year)/i.test(text) ? 'P1Y'
           : /\/\s*(?:tháng|month)/i.test(text) ? 'P1M' : null;
