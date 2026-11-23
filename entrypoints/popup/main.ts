@@ -35,7 +35,13 @@ const empty: TabCapture = {
 };
 let activeId: number | null = null;
 let snapshot: TabCapture = empty;
+let pageSkuOffers: NetworkOffer[] = [];
+let visibleSkuIds: string[] = [];
 let importedHar: NetworkOffer[] | null = null;
+
+function currentSkuRows(): NetworkOffer[] {
+  return uniqueNetworkOffers([...pageSkuOffers, ...snapshot.network]).slice(0, 40);
+}
 let tryInFlight = false;
 
 const networkLabels: Record<OfferStatus, string> = {
@@ -128,12 +134,12 @@ function renderLive() {
   activity.textContent = activeId === null
     ? 'Mở Google One rồi quay lại popup để xem các kết quả tự động.'
     : 'Đã quan sát ' + snapshot.networkEvents + ' lượt RPC · ' +
-      snapshot.network.filter((row) => row.source === 'bootstrap' || row.source === 'page').length +
+      currentSkuRows().filter((row) => row.source === 'bootstrap' || row.source === 'page').length +
       ' bản ghi SKU từ HTML · ' +
-      snapshot.network.filter((row) => row.source === 'request' || row.source === 'response').length +
+      currentSkuRows().filter((row) => row.source === 'request' || row.source === 'response').length +
       ' bản ghi từ mạng · ' + snapshot.dom.length +
       ' gói từ giao diện. Chỉ lưu trong phiên trình duyệt.';
-  renderNetwork(snapshot.network, snapshot.networkEvents);
+  renderNetwork(currentSkuRows(), snapshot.networkEvents);
   renderDom(snapshot.dom);
 }
 async function currentGoogleTab(): Promise<number | null> {
@@ -142,6 +148,8 @@ async function currentGoogleTab(): Promise<number | null> {
 }
 async function loadLive() {
   activeId = await currentGoogleTab();
+  pageSkuOffers = [];
+  visibleSkuIds = [];
   if (activeId !== null) {
     try {
       const response: unknown = await browser.runtime.sendMessage({
@@ -160,6 +168,31 @@ async function loadLive() {
         };
       } else snapshot = empty;
     } catch { snapshot = empty; }
+    // Read the page directly as a fallback to asynchronous MV3 storage.
+    // Google may render its plan cards before the background has cached SKU
+    // summaries, so the popup must not label every SKU historical incorrectly.
+    try {
+      const response: unknown = await browser.tabs.sendMessage(activeId, {
+        kind: 'G1_PAGE_SNAPSHOT',
+      });
+      if (response && typeof response === 'object' &&
+          'kind' in response && response.kind === 'G1_PAGE_SNAPSHOT_RESULT') {
+        const value = response as {
+          offers?: unknown; visibleSkus?: unknown; dom?: unknown;
+        };
+        pageSkuOffers = Array.isArray(value.offers)
+          ? value.offers.filter(isNetworkOffer).slice(0, 40) : [];
+        visibleSkuIds = Array.isArray(value.visibleSkus)
+          ? value.visibleSkus.filter((id): id is string =>
+              typeof id === 'string' && /^g1\.[a-z0-9][a-z0-9._-]{1,79}$/i.test(id)
+            ).slice(0, 40) : [];
+        if (Array.isArray(value.dom) && value.dom.length) {
+          snapshot = { ...snapshot, connected: true, dom: value.dom.slice(0, 20) };
+        }
+      }
+    } catch {
+      // The Google tab may be loading/reloading; cached data is still shown.
+    }
   } else snapshot = empty;
   renderLive();
 }
@@ -242,7 +275,7 @@ viewLive.addEventListener('click', () => {
 
 
 function renderTrySkuList() {
-  const items = buildTrySkuList(snapshot.network);
+  const items = buildTrySkuList(currentSkuRows());
   skuTrialCount.textContent = String(items.length);
   skuTryList.replaceChildren();
   if (!items.length) {
@@ -258,8 +291,11 @@ function renderTrySkuList() {
     const price = element('div', 'try-sku-price', choice.expectedPrice +
       (choice.billingPeriod === 'P1Y' ? '/năm' : choice.billingPeriod === 'P1M' ? '/tháng' : ''));
     details.append(price);
+    const hasCta = visibleSkuIds.includes(choice.productId);
     details.append(element('div', 'try-sku-origin',
-      choice.observedNow ? 'Đang phát hiện trên tab' : 'SKU tham khảo · chưa phát hiện phiên này'));
+      hasCta ? 'Có nút đăng ký SKU trên trang' :
+        choice.observedNow ? 'Đã phát hiện SKU, chưa có nút đăng ký' :
+        'SKU tham khảo · chưa phát hiện phiên này'));
     if (choice.basePlanId) details.append(element('div', 'meta', 'Base Plan tham khảo: ' + choice.basePlanId));
     const button = element('button', 'primary try-sku-button', 'Thử');
     button.type = 'button';
