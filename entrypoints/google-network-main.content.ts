@@ -29,8 +29,8 @@ export default defineContentScript({
       catch { return false; }
     };
 
-    // Observes URL-encoded request metadata if an application passes a string body.
-    // FormData, streams and Request objects are deliberately not consumed.
+    // Read only clones or string/URLSearchParams bodies for matching commerce RPCs.
+    // Never consume original bodies, inspect FormData or mutate a checkout request.
     const originalFetch = window.fetch;
     window.fetch = function (...args: Parameters<typeof fetch>): ReturnType<typeof fetch> {
       const input = args[0];
@@ -39,7 +39,20 @@ export default defineContentScript({
         const url = typeof input === 'string' ? input
           : input instanceof URL ? input.href : input?.url ?? '';
         targeted = matches(url);
-        if (targeted && typeof args[1]?.body === 'string') emit(args[1].body, 'request');
+        if (targeted) {
+          const initBody = args[1]?.body;
+          if (typeof initBody === 'string') {
+            emit(initBody, 'request');
+          } else if (initBody instanceof URLSearchParams) {
+            emit(initBody.toString(), 'request');
+          } else if (!initBody && input instanceof Request) {
+            // A clone is consumed asynchronously; the original request is untouched.
+            const length = Number(input.headers.get('content-length') || '0');
+            if (!input.bodyUsed && length <= MAX_BODY) {
+              void input.clone().text().then((body) => emit(body, 'request')).catch(() => {});
+            }
+          }
+        }
       } catch { /* Ignore inspection errors without reissuing the request. */ }
 
       // Call the original exactly once, regardless of URL or errors.
@@ -69,6 +82,7 @@ export default defineContentScript({
       const url = urls.get(this);
       if (url && matches(url)) {
         if (typeof body === 'string') emit(body, 'request');
+        else if (body instanceof URLSearchParams) emit(body.toString(), 'request');
         this.addEventListener('loadend', () => {
           try {
             if (this.status < 200 || this.status >= 300) return;
