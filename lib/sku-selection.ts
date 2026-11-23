@@ -3,7 +3,7 @@ import { skuFromJslog } from './bootstrap-offers.ts';
 import { isSafePlanEntryLabel, matchesObservedPrice } from './official-google-one.ts';
 
 const SKU = /^g1\.[a-z0-9][a-z0-9._-]{1,79}$/i;
-const CURRENCY = /^(?:VND|USD|EUR|GBP)$/;
+const CURRENCY = /^VND$/;
 export interface SkuSelection {
   productId: string;
   expectedPrice: string;

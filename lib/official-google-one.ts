@@ -43,7 +43,7 @@ export function isSafePlanEntryLabel(input: string): boolean {
     return false;
   }
   return /^(get|start|select|choose|view|explore|upgrade|try|go to|see)\b/.test(label) ||
-    /^(chọn gói|xem gói|xem chi tiết|bắt đầu|nâng cấp|khám phá|dùng thử|nhận gói|đăng ký gói)/.test(label);
+    /^(chọn gói|xem gói|xem chi tiết|bắt đầu|nâng cấp|khám phá|dùng thử|nhận gói|đăng ký gói|đăng ký google ai|đăng ký ai)/.test(label);
 }
 
 export function matchesPlanText(text: string, kind: PlanKind): boolean {
