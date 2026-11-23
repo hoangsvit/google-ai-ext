@@ -73,9 +73,9 @@ test('never compare unrelated products, currency or billing cycle', () => {
   const rows = extractNetworkOffers(encodeRpc([sapphire, aiPlus]), 'response');
   assert.deepEqual(compareBasePlans(rows), []);
   const modified = extractNetworkOffers(encodeRpc([aiPro]), 'request');
-  modified[1]!.currency = 'USD';
+  modified[1].currency = 'USD';
   assert.deepEqual(compareBasePlans(modified), []);
-  modified[1]!.currency = 'VND';
-  modified[1]!.billingPeriod = 'P1Y';
+  modified[1].currency = 'VND';
+  modified[1].billingPeriod = 'P1Y';
   assert.deepEqual(compareBasePlans(modified), []);
 });
