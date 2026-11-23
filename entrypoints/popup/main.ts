@@ -31,6 +31,13 @@ const harStatus = document.querySelector<HTMLElement>('#har-status')!;
 const viewLive = document.querySelector<HTMLButtonElement>('#view-live')!;
 const skuTryList = document.querySelector<HTMLElement>('#sku-try-list')!;
 const skuTrialCount = document.querySelector<HTMLElement>('#sku-trial-count')!;
+const liveSkuCount = document.querySelector<HTMLElement>('#live-sku-count')!;
+const commerceSkuCount = document.querySelector<HTMLElement>('#commerce-sku-count')!;
+const skuResultCount = document.querySelector<HTMLElement>('#sku-result-count')!;
+const skuSearch = document.querySelector<HTMLInputElement>('#sku-search')!;
+const filterButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-sku-filter]'));
+const trialState = document.querySelector<HTMLElement>('#trial-state')!;
+const trialDetail = document.querySelector<HTMLElement>('#trial-detail')!;
 
 const empty: TabCapture = {
   connected: false, networkEvents: 0, network: [], dom: [], updatedAt: 0,
@@ -47,6 +54,48 @@ function currentSkuRows(): NetworkOffer[] {
 }
 let tryInFlight = false;
 const skuTryResults = new Map<string, string>();
+type SkuFilter = 'all' | 'live' | 'commerce' | 'catalog';
+let selectedFilter: SkuFilter = 'all';
+
+function normalizeSearch(value: string): string {
+  return value.toLocaleLowerCase('vi').normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').trim();
+}
+
+function renderTrialSummary(): void {
+  const state = snapshot.trial;
+  if (!state) {
+    trialState.textContent = 'Chưa thử';
+    trialState.className = 'status-neutral';
+    trialDetail.textContent =
+      'Chọn một SKU và nhấn Thử. Chỉ kết quả Google thực sự trả về mới được ghi nhận.';
+    return;
+  }
+  const status = state.status;
+  trialState.textContent =
+    status === 'no-cta' ? 'Chưa gửi' :
+    status === 'response-observed' ? 'Có phản hồi' :
+    status === 'request-observed' ? 'Có RPC' :
+    status === 'cta-clicked' ? 'Đã nhấn nút' : 'Đang kiểm tra';
+  trialState.className = status === 'no-cta' ? 'status-warn' :
+    status === 'response-observed' ? 'status-ok' : 'status-neutral';
+  trialDetail.textContent = state.productId + ' · ' + formatTrialStatus(state);
+}
+
+function selectedMatches(item: ReturnType<typeof buildTrySkuList>[number]): boolean {
+  const isLive = item.observedNow || visibleSkuIds.includes(item.productId);
+  if (selectedFilter === 'live' && !isLive) return false;
+  if (selectedFilter === 'commerce' && item.evidence !== 'commerce-har') return false;
+  if (selectedFilter === 'catalog' && item.evidence !== 'html-catalog') return false;
+  const search = normalizeSearch(skuSearch.value);
+  if (!search) return true;
+  const haystack = normalizeSearch([
+    item.plan, item.productId, item.expectedPrice,
+    item.basePlanId ?? '', item.evidenceHar ?? '',
+  ].join(' '));
+  return haystack.includes(search);
+}
+
 
 const networkLabels: Record<OfferStatus, string> = {
   trial: 'Có giai đoạn miễn phí',
@@ -132,6 +181,7 @@ function renderDom(rows: Offer[]) {
 function renderLive() {
   if (importedHar) return;
   renderTrySkuList();
+  renderTrialSummary();
   connection.textContent = activeId === null
     ? 'Chưa mở Google One trong tab hiện tại'
     : snapshot.connected ? 'Đang theo dõi Google One tự động' : 'Đang chờ kết nối Google One…';
@@ -290,11 +340,22 @@ viewLive.addEventListener('click', () => {
 
 
 function renderTrySkuList() {
-  const items = buildTrySkuList(currentSkuRows());
-  skuTrialCount.textContent = String(new Set(items.map((item) => item.productId)).size);
+  const fullList = buildTrySkuList(currentSkuRows());
+  const items = fullList.filter(selectedMatches);
+  const countDistinct = (rows: typeof fullList): number =>
+    new Set(rows.map((item) => item.productId)).size;
+  skuTrialCount.textContent = String(countDistinct(fullList));
+  liveSkuCount.textContent = String(countDistinct(fullList.filter(
+    (item) => item.observedNow || visibleSkuIds.includes(item.productId),
+  )));
+  commerceSkuCount.textContent = String(countDistinct(fullList.filter(
+    (item) => item.evidence === 'commerce-har',
+  )));
+  skuResultCount.textContent = items.length + ' lựa chọn' +
+    (items.length === fullList.length ? '' : ' / ' + fullList.length);
   skuTryList.replaceChildren();
   if (!items.length) {
-    emptyMessage(skuTryList, 'Chưa có SKU tham khảo.');
+    emptyMessage(skuTryList, 'Không tìm thấy SKU phù hợp. Thử bộ lọc hoặc từ khóa khác.');
     return;
   }
   for (const choice of items) {
@@ -307,17 +368,20 @@ function renderTrySkuList() {
       (choice.billingPeriod === 'P1Y' ? '/năm' : choice.billingPeriod === 'P1M' ? '/tháng' : ''));
     details.append(price);
     const hasCta = visibleSkuIds.includes(choice.productId);
-    details.append(element('div', 'try-sku-origin',
-      hasCta ? 'Có nút đăng ký SKU trên trang' :
-        choice.observedNow ? 'Đã phát hiện SKU, chưa có nút đăng ký' :
-        choice.evidence === 'commerce-har'
-          ? 'Lịch sử: đã thấy RPC Play Commerce · không chứng minh quyền mua'
-          : 'SKU từ HTML trước đó · chưa phát hiện phiên này'));
+    const label = hasCta ? 'Có nút Google trên trang' :
+      choice.observedNow ? 'SKU được phát hiện phiên này' :
+      choice.evidence === 'commerce-har'
+        ? 'Từng có Play Commerce · HAR lịch sử'
+        : 'SKU chỉ từ HTML lịch sử';
+    const origin = element('div', 'try-sku-origin', label);
+    origin.dataset.evidence = choice.evidence === 'commerce-har'
+      ? 'commerce' : choice.observedNow || hasCta ? 'live' : 'html';
+    details.append(origin);
     if (choice.evidenceHar) {
       details.append(element('div', 'try-sku-evidence',
         'Nguồn: ' + choice.evidenceHar));
     }
-    if (choice.basePlanId) details.append(element('div', 'meta', 'Base Plan tham khảo: ' + choice.basePlanId));
+    if (choice.basePlanId) details.append(element('div', 'meta', 'Base plan: ' + choice.basePlanId));
     const button = element('button', 'primary try-sku-button', 'Thử');
     button.type = 'button';
     const resultKey = [choice.productId, choice.expectedPrice, choice.billingPeriod ?? ''].join('|');
@@ -392,6 +456,20 @@ function renderTrySkuList() {
     card.append(heading, result);
     skuTryList.append(card);
   }
+}
+
+skuSearch.addEventListener('input', () => renderTrySkuList());
+for (const button of filterButtons) {
+  button.addEventListener('click', () => {
+    const filter = button.dataset.skuFilter;
+    if (filter !== 'all' && filter !== 'live' &&
+        filter !== 'commerce' && filter !== 'catalog') return;
+    selectedFilter = filter;
+    for (const item of filterButtons) {
+      item.setAttribute('aria-pressed', String(item === button));
+    }
+    renderTrySkuList();
+  });
 }
 
 void loadLive();
