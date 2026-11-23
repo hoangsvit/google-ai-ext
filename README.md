@@ -42,6 +42,68 @@ bootstrap catalog does not guarantee Google will permit checkout at that price.
 The original saved HTML, account attributes and billing tokens are **not committed**;
 tests use synthetic, sanitized equivalents.
 
+## Compact popup design matching the approved visual
+
+The extension popup has a **single 420 × 600px scrolling surface**, not a
+desktop dashboard. Its navigation follows the approved dark-navy/purple
+prototype: ePlus.DEV toolbar with working refresh, diagnostics and official
+Google One actions; Google One header; live connection strip; **three stats
+(distinct SKUs, historical Commerce SKUs, and price/Base Plan choices)**;
+search; four filter chips; and **four SKU cards per page**.
+
+Each card presents a compact icon, plan name, copyable product ID, truthful
+source tags, a price/period and one purple **Thử** action. Pagination, search,
+filter chips, copy, technical settings and the sticky **Hướng dẫn / Xem chi
+tiết lần thử** footer are interactive. Detailed RPC/HAR analysis is collapsed
+by default. The popup uses historical and current-session product metadata;
+it does not hardcode the visual prototype's example values or simulate
+a successful Google checkout.
+
+## Popup interface — SKU Explorer
+
+The Chrome/Edge popup has one main scrollbar (no nested SKU-scroll area):
+- **Connection and summary:** current-session SKU count, historically observed
+  Play Commerce products, and distinct known product IDs.
+- **Latest attempt:** a separate result panel tracks whether the official CTA
+  was found/clicked, an RPC was observed, or no request was sent. HTTP status
+  is not proof of purchase.
+- **Live SKU catalog:** real-time **search** by plan, SKU, price, base plan or
+  HAR reference; four clickable evidence filters: **Tất cả**, **Phiên này**,
+  **Có Commerce**, **HTML**.
+- **Per-SKU cards:** plan name, product ID, price/period, current-session
+  vs prior-HAR evidence, source HAR and base plan. Historical entries remain
+  visible and can be inspected with **Thử** without claiming Google accepted
+  a purchase.
+- **Advanced details:** network metadata, DOM offers, local HAR import and
+  session clear are collapsed by default to keep the popup usable.
+
+All filters and search operate on sanitized extension metadata, without
+sending a new network request. The **Thử** action retains its existing,
+restricted behavior: use an official Google One plan button if present;
+otherwise explicitly report **Chưa gửi**.
+
+## Catalog SKU sources and evidence (23/11/2026)
+
+The catalog includes **9 unique Google One product IDs and 10 plan/price
+choices** from five locally inspected HARs and the saved Google One HTML.
+No additional verified product ID was found beyond the existing catalog,
+so the extension now labels their actual **source and evidence** instead
+of adding invented SKUs.
+
+| SKU | Evidence | Historical source |
+|---|---|---|
+| `g1.20tb.v2` | HTML + Play Commerce RPC | `one.google.com.har`, `one.google.com(1).har` |
+| `g1.play.sapphire` | Play Commerce RPC | `one.google.com(2).har` |
+| `g1.play.2tb.ai.student` | Play Commerce RPC (monthly and monthly-transit prices) | `one.google.com(2).har` |
+| `g1.play.helium.student` | Play Commerce RPC | `one.google.com(3).har` |
+| `g1.helium.m`, `g1.helium.a`, `g1.2tb.ai`, `g1.2tb.ai.annual`, `g1.ai.pro` | HTML catalog; `g1.2tb.ai` also seen in subscriptions RPC | Saved HTML / HAR |
+
+A Commerce RPC **HTTP 200** in a saved HAR means there was a response to
+a Commerce request. It is *not* a successful purchase, proof of user
+eligibility, or a reusable purchase request. The popup now places live
+SKUs first and marks historical Commerce-backed SKUs separately from
+HTML-only SKUs. No raw HAR data, cookies or checkout tokens are included.
+
 ## One-click SKU research list
 
 The popup shows every SKU from the previously observed and sanitized Google One

@@ -3,55 +3,137 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta name="theme-color" content="#0b1020"/>
-  <title>Google One — Live Offers</title>
+  <meta name="theme-color" content="#0c1429"/>
+  <title>ePlus.DEV · Google One SKU Explorer</title>
 </head>
 <body>
   <main class="app">
-    <div class="brand"><span class="brand-icon">G1</span><span>ePlus.DEV / GOOGLE ONE</span><span class="version">v0.2</span></div>
-    <header>
-      <p class="eyebrow">LIVE OFFER DETECTION</p>
-      <h1>Tự động nhận diện gói Google One</h1>
-      <p class="intro">Mở Google One là extension tự quan sát request và gói đang hiển thị. Không cần bấm Quét.</p>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">ϟ</span>
+        <div class="brand-copy">
+          <strong>ePlus.DEV</strong>
+          <span>Google AI Toolkit</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="reload" class="icon-button" type="button" title="Tải lại Google One" aria-label="Tải lại Google One">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M5 9a8 8 0 0 1 13-2l2 5M4 12l2 5a8 8 0 0 0 13-2"/></svg>
+        </button>
+        <button id="settings-toggle" class="icon-button" type="button" title="Cài đặt và HAR" aria-label="Mở mục phân tích kỹ thuật">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.8 3.6.5-1.2h3.4l.5 1.2 1.5.7 1.4-.5 2.4 2.4-.6 1.5.7 1.5 1.4.6v3.4l-1.4.5-.7 1.5.6 1.5-2.4 2.4-1.4-.6-1.5.7-.5 1.4h-3.4l-.5-1.4-1.5-.7-1.4.6-2.4-2.4.6-1.5-.7-1.5-1.4-.5V9.8l1.4-.6.7-1.5-.6-1.5L6.9 3.8l1.4.5z"/><circle cx="12" cy="11.5" r="2.8"/></svg>
+        </button>
+        <button id="open" class="icon-button" type="button" title="Mở Google One" aria-label="Mở Google One">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5H5v14h14v-7M13 3h8v8M21 3 11 13"/></svg>
+        </button>
+      </div>
     </header>
+
+    <section class="intro-block">
+      <div class="google-logo" aria-hidden="true">G</div>
+      <div>
+        <div class="intro-title">
+          <h1>Google One <span class="title-dash">—</span> SKU Explorer</h1>
+          <span class="version">BETA</span>
+        </div>
+        <p>Khám phá và thử các gói Google One / Google AI qua SKU.</p>
+      </div>
+    </section>
+
     <div id="live-state" class="live-state" role="status" aria-live="polite">
-      <span class="pulse" aria-hidden="true"></span><span id="connection">Đang kiểm tra tab...</span>
+      <span class="live-left"><span class="pulse" aria-hidden="true"></span><span id="connection">Đang kiểm tra Google One…</span></span>
+      <span class="live-origin">one.google.com</span>
     </div>
-    <p id="activity" class="activity">Đang chờ dữ liệu trang và RPC.</p>
-    <div class="actions">
-      <button id="open" class="primary" type="button">Mở Google One</button>
-      <button id="reload" class="secondary" type="button">Tải lại trang</button>
-    </div>
-    <section class="sku-trial-section" aria-labelledby="sku-trial-heading">
-      <div class="section-header">
-        <h2 id="sku-trial-heading">Danh sách SKU · Bấm Thử</h2>
-        <span id="sku-trial-count" class="counter">0</span>
+    <p id="activity" class="activity">Đang theo dõi dữ liệu phiên hiện tại.</p>
+
+    <section class="overview" aria-label="Số liệu SKU">
+      <div class="stat">
+        <span class="stat-icon" aria-hidden="true">▱</span>
+        <span id="sku-trial-count" class="stat-value">9</span>
+        <span class="stat-label">SKU đã biết</span>
       </div>
-      <p class="sku-trial-intro">Hiện tất cả SKU đã biết. Bấm Thử để mở luồng Google khi có nút đăng ký và xem RPC/HTTP quan sát được. SKU không hiện trên trang sẽ báo chưa gửi.</p>
-      <div id="sku-try-list" class="sku-trial-list">
-        <div class="empty">Đang tải danh sách SKU...</div>
+      <div class="stat">
+        <span class="stat-icon" aria-hidden="true">▶</span>
+        <span id="commerce-sku-count" class="stat-value">4</span>
+        <span class="stat-label">Có Commerce</span>
+      </div>
+      <div class="stat">
+        <span class="stat-icon" aria-hidden="true">◇</span>
+        <span id="base-plan-count" class="stat-value">10</span>
+        <span class="stat-label">Lựa chọn giá</span>
       </div>
     </section>
-    <section class="result-section" aria-labelledby="rpc-title">
-      <div class="section-header"><h2 id="rpc-title">SKU từ HTML / request / response</h2><span id="rpc-count" class="counter">0</span></div>
-      <div id="network-results" class="results" aria-live="polite"><div class="empty">Chưa có dữ liệu RPC.</div></div>
+
+    <section class="catalog-section" aria-labelledby="sku-trial-heading">
+      <h2 class="visually-hidden" id="sku-trial-heading">Danh sách SKU</h2>
+      <label class="visually-hidden" for="sku-search">Tìm SKU, tên gói hoặc Base Plan</label>
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
+        <input id="sku-search" type="search" autocomplete="off" spellcheck="false"
+          placeholder="Tìm SKU, tên gói..."/>
+      </div>
+      <div class="filters" role="group" aria-label="Lọc theo nguồn SKU">
+        <button type="button" class="filter-chip" data-sku-filter="all" aria-pressed="true">Tất cả (<span id="all-filter-count">9</span>)</button>
+        <button type="button" class="filter-chip" data-sku-filter="live" aria-pressed="false">Phiên này (<span id="live-sku-count">0</span>)</button>
+        <button type="button" class="filter-chip" data-sku-filter="commerce" aria-pressed="false">Có Commerce (<span id="commerce-filter-count">4</span>)</button>
+        <button type="button" class="filter-chip" data-sku-filter="catalog" aria-pressed="false">HTML (<span id="html-filter-count">5</span>)</button>
+      </div>
+      <div id="sku-try-list" class="sku-trial-list" aria-live="polite">
+        <div class="empty">Đang tải SKU...</div>
+      </div>
+      <div class="catalog-pagination">
+        <span id="sku-result-count">Hiển thị 0 / 10 lựa chọn</span>
+        <div class="page-controls">
+          <button id="sku-page-prev" type="button" class="page-button" aria-label="Trang trước" disabled>‹</button>
+          <span id="sku-page-label">1 / 3</span>
+          <button id="sku-page-next" type="button" class="page-button" aria-label="Trang sau">›</button>
+        </div>
+      </div>
     </section>
-    <section class="result-section" aria-labelledby="dom-title">
-      <div class="section-header"><h2 id="dom-title">Gói hiển thị trên trang</h2><span id="dom-count" class="counter">0</span></div>
-      <div id="dom-results" class="results" aria-live="polite"><div class="empty">Chưa tìm thấy gói trên giao diện.</div></div>
-    </section>
-    <details class="fold">
-      <summary>Đọc file HAR cục bộ (nếu cần)</summary>
-      <p>Chỉ dùng khi cần kiểm tra một bản ghi đã lưu. File HAR có thể chứa dữ liệu phiên nhạy cảm, không chia sẻ công khai.</p>
-      <input id="har-file" type="file" accept=".har,.json,application/json"/>
-      <p id="har-status" class="hint" role="status">Chưa chọn HAR.</p>
-      <button id="view-live" class="secondary" type="button" hidden>Quay lại dữ liệu trực tiếp</button>
+
+    <details id="trial-panel" class="trial-panel">
+      <summary>Chi tiết lần thử gần nhất <span id="trial-state" class="status-neutral">Chưa thử</span></summary>
+      <p id="trial-detail" role="status" aria-live="polite">
+        Chọn SKU và nhấn Thử. Chỉ kết quả thực sự quan sát được mới hiển thị.
+      </p>
     </details>
-    <div class="bottom">
-      <button id="clear" class="text-button" type="button">Xóa dữ liệu tạm của tab</button>
-      <span>Giá và điều kiện cuối cùng do Google xác nhận.</span>
-      <a href="https://github.com/hoangsvit/google-ai-ext" target="_blank" rel="noopener noreferrer">Source code</a>
-    </div>
+
+    <details id="technical-panel" class="advanced">
+      <summary>Phân tích kỹ thuật &amp; HAR</summary>
+      <div class="advanced-body">
+        <section class="result-section" aria-labelledby="rpc-title">
+          <div class="panel-heading">
+            <h2 id="rpc-title">SKU từ HTML / RPC</h2>
+            <span id="rpc-count" class="mini-counter">0</span>
+          </div>
+          <div id="network-results" class="results" aria-live="polite"><div class="empty">Chưa có metadata.</div></div>
+        </section>
+        <section class="result-section" aria-labelledby="dom-title">
+          <div class="panel-heading">
+            <h2 id="dom-title">Gói trên trang</h2>
+            <span id="dom-count" class="mini-counter">0</span>
+          </div>
+          <div id="dom-results" class="results" aria-live="polite"><div class="empty">Chưa có gói hiển thị.</div></div>
+        </section>
+        <div class="har-import">
+          <label for="har-file">Đọc HAR cục bộ, không tải lên</label>
+          <input id="har-file" type="file" accept=".har,.json,application/json"/>
+          <p id="har-status" class="hint" role="status">Chưa chọn HAR.</p>
+          <button id="view-live" class="secondary" type="button" hidden>Quay lại dữ liệu trực tiếp</button>
+        </div>
+        <button id="clear" class="text-button" type="button">Xóa dữ liệu tạm của tab</button>
+      </div>
+    </details>
+
+    <footer class="bottom">
+      <button id="help-toggle" type="button" class="footer-help"><span aria-hidden="true">ⓘ</span> Hướng dẫn</button>
+      <button id="show-trial" type="button" class="footer-trial"><span aria-hidden="true">↗</span> Xem chi tiết lần thử</button>
+    </footer>
+    <details id="help-panel" class="help-panel">
+      <summary class="visually-hidden">Hướng dẫn sử dụng</summary>
+      <p>Mở Google One và chọn SKU → Thử. Nếu Google không có nút đăng ký phù hợp, extension báo chưa gửi. Có RPC/HTTP 200 không có nghĩa đã mua hay đủ điều kiện ưu đãi.</p>
+      <a href="https://github.com/hoangsvit/google-ai-ext" target="_blank" rel="noopener noreferrer">Mã nguồn</a>
+    </details>
   </main>
   <script type="module" src="./main.ts"></script>
 </body>
