@@ -14,7 +14,16 @@ test('popup shows live network and DOM, not demo or manual scan controls', () =>
     assert.match(html,new RegExp('id="' + id + '"'));
   }
   assert.doesNotMatch(html,/id="scan"|id="demo-offer"|Response Rewrite Lab|Thử gói DEMO/i);
-  assert.match(html,/Không cần bấm Quét/);
-  assert.match(html,/Danh sách SKU · Bấm Thử/);
+  assert.match(html,/SKU Explorer/);
+  assert.match(html,/Danh sách SKU/);
+  for (const id of ['sku-search','live-sku-count','commerce-sku-count',
+    'sku-result-count','trial-state','trial-detail']) {
+    assert.match(html,new RegExp('id="' + id + '"'));
+  }
+  for (const filter of ['all','live','commerce','catalog']) {
+    assert.match(html,new RegExp('data-sku-filter="' + filter + '"'));
+  }
+  assert.match(css,/\.app\{[^}]*overflow-y:auto/);
+  assert.doesNotMatch(css,/\.sku-trial-list\{[^}]*max-height:/);
   assert.doesNotMatch(html,/id="official-choice"|id="official-preview"|id="official-launch"/);
 });

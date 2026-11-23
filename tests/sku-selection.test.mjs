@@ -75,6 +75,6 @@ test('page performs only a two-stage official CTA click, not private billing RPC
   assert.match(popup,/buildTrySkuList\(currentSkuRows\(\)\)/);
   assert.match(popup,/G1_SKU_TRY/);
   assert.match(source,/G1_SKU_TRY/);
-  assert.match(html,/Danh sách SKU · Bấm Thử/);
+  assert.match(html,/Danh sách SKU/);
   assert.doesNotMatch(html,/option value="pro-122"|demo-offer/);
 });

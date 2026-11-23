@@ -42,6 +42,29 @@ bootstrap catalog does not guarantee Google will permit checkout at that price.
 The original saved HTML, account attributes and billing tokens are **not committed**;
 tests use synthetic, sanitized equivalents.
 
+## Popup interface — SKU Explorer
+
+The Chrome/Edge popup has one main scrollbar (no nested SKU-scroll area):
+- **Connection and summary:** current-session SKU count, historically observed
+  Play Commerce products, and distinct known product IDs.
+- **Latest attempt:** a separate result panel tracks whether the official CTA
+  was found/clicked, an RPC was observed, or no request was sent. HTTP status
+  is not proof of purchase.
+- **Live SKU catalog:** real-time **search** by plan, SKU, price, base plan or
+  HAR reference; four clickable evidence filters: **Tất cả**, **Phiên này**,
+  **Có Commerce**, **HTML**.
+- **Per-SKU cards:** plan name, product ID, price/period, current-session
+  vs prior-HAR evidence, source HAR and base plan. Historical entries remain
+  visible and can be inspected with **Thử** without claiming Google accepted
+  a purchase.
+- **Advanced details:** network metadata, DOM offers, local HAR import and
+  session clear are collapsed by default to keep the popup usable.
+
+All filters and search operate on sanitized extension metadata, without
+sending a new network request. The **Thử** action retains its existing,
+restricted behavior: use an official Google One plan button if present;
+otherwise explicitly report **Chưa gửi**.
+
 ## Catalog SKU sources and evidence (23/11/2026)
 
 The catalog includes **9 unique Google One product IDs and 10 plan/price
