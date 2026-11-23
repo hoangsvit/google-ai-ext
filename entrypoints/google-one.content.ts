@@ -138,19 +138,45 @@ export default defineContentScript({
       return found;
     }
 
-    function inspectSku(raw: { selection?: unknown; kind?: unknown }) {
+    async function inspectSku(raw: { selection?: unknown; kind?: unknown }) {
       if (!validSkuSelection(raw.selection)) {
         return { status: 'invalid', message: 'SKU hoặc giá không hợp lệ. Không thực hiện yêu cầu.' };
       }
       const selection = raw.selection;
-      const matches = findSkuCta(selection);
+      let matches = findSkuCta(selection);
       if (raw.kind === 'G1_SKU_TRY') {
+        // Annual products are often absent until Google's annual tab is
+        // selected. One user click on Try may safely select a billing-period
+        // tab, then activate exactly the matching plan-entry CTA.
+        if (matches.length === 0 &&
+            (selection.billingPeriod === 'P1Y' || selection.billingPeriod === 'P1M')) {
+          const yearly = selection.billingPeriod === 'P1Y';
+          const target = yearly ? /^(hằng năm|hàng năm|yearly|annual)/i
+            : /^(hằng tháng|hàng tháng|monthly)/i;
+          const tabs = Array.from(document.querySelectorAll<HTMLElement>(
+            '[role="tab"]'
+          )).filter((node) =>
+            safeAction(node) &&
+            target.test((node.innerText ?? node.textContent ?? '').trim()) &&
+            node.getAttribute('aria-selected') !== 'true'
+          );
+          if (tabs.length === 1) {
+            tabs[0]!.click();
+            // Wait for Google's own SPA to render the alternate plan cards.
+            await new Promise<void>((resolve) => setTimeout(resolve, 350));
+            matches = findSkuCta(selection);
+            if (matches.length === 0) {
+              await new Promise<void>((resolve) => setTimeout(resolve, 400));
+              matches = findSkuCta(selection);
+            }
+          }
+        }
         // One explicit click is enough to *start* Google's regular plan flow,
         // never to approve payment. Historical examples may have no CTA here.
         lastSkuPreview = null;
         if (matches.length === 0) {
           return { status: 'not-found',
-            message: 'Google chưa có nút đăng ký cho SKU và giá này trên trang hiện tại.' };
+            message: 'Chưa gửi yêu cầu: Google không hiển thị nút đăng ký cùng SKU/giá trên trang (kể cả khi đã chuyển kỳ hạn).' };
         }
         if (matches.length !== 1) {
           return { status: 'ambiguous',
@@ -301,8 +327,7 @@ export default defineContentScript({
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (!message || typeof message !== 'object') return;
       if (message.kind === 'G1_SKU_TRY' || message.kind === 'G1_SKU_PREVIEW' || message.kind === 'G1_SKU_OPEN') {
-        sendResponse(inspectSku(message as { selection?: unknown; kind?: unknown }));
-        return;
+        return inspectSku(message as { selection?: unknown; kind?: unknown });
       }
       if (message.kind === 'G1_OFFICIAL_PLAN_PREVIEW' || message.kind === 'G1_OFFICIAL_PLAN_OPEN') {
         sendResponse(inspectAction(message as PlanMessage));
