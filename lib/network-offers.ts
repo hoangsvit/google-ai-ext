@@ -2,7 +2,7 @@
  * Read-only, allowlisted extraction of Google One product metadata.
  * No tokens, cookies, account details, request bodies or response bodies leave this function.
  */
-export type NetworkSource = 'request' | 'response';
+export type NetworkSource = 'request' | 'response' | 'bootstrap' | 'page';
 
 export interface NetworkOffer {
   productId: string;
@@ -40,7 +40,7 @@ function safePrice(value: unknown): string | null {
 function safeTitle(value: unknown): string | null {
   if (typeof value !== 'string' || value.length > 130) return null;
   const title = value.replace(/\s+/g, ' ').trim();
-  return /google\s*(one|ai\s*(ultra|pro))|ai\s*ultra/i.test(title) ? title : null;
+  return /google\s*(one|ai\s*(ultra|pro|plus))|ai\s*(ultra|pro|plus)/i.test(title) ? title : null;
 }
 function safeMicros(value: unknown): string | null {
   if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return String(value);
@@ -78,6 +78,10 @@ export function uniqueNetworkOffers(offers: NetworkOffer[]): NetworkOffer[] {
     const key = [offer.productId, offer.basePlanId, offer.offerId, offer.price,
       offer.phaseIndex ?? '', offer.priceMicros ?? '', offer.source].join('|');
     if (seen.has(key)) continue;
+    // A well-formed plan from HTML or RPC supersedes the less precise jslog
+    // button summary for the same SKU, preventing duplicate phantom cards.
+    if (offer.source === 'page' && result.some((item) =>
+      item.productId === offer.productId && item.basePlanId && item.price)) continue;
     // A detailed product record supersedes an identifier-only entry from the same payload.
     if (!offer.basePlanId && !offer.offerId && !offer.price && result.some((item) =>
       item.source === offer.source && item.productId === offer.productId &&
@@ -212,7 +216,8 @@ export function isNetworkOffer(value: unknown): value is NetworkOffer {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<NetworkOffer>;
   return typeof candidate.productId === 'string' && PRODUCT_ID.test(candidate.productId) &&
-    (candidate.source === 'request' || candidate.source === 'response') &&
+    (candidate.source === 'request' || candidate.source === 'response' ||
+      candidate.source === 'bootstrap' || candidate.source === 'page') &&
     [candidate.plan, candidate.basePlanId, candidate.offerId,
       candidate.price, candidate.currency, candidate.billingPeriod]
       .every((field) => field === null || (typeof field === 'string' && field.length <= 130)) &&
