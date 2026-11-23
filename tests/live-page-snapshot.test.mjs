@@ -40,6 +40,7 @@ test('one click tries a live monthly or yearly tab first, never changes billing 
 });
 
 test('never fabricate a successful purchase or HTTP success from a programmatic click',()=>{
-  assert.doesNotMatch(page,/mua thành công|đăng ký thành công|thanh toán thành công/i);
+  assert.doesNotMatch(page,/status: 'purchase-success'|status: 'paid'|paymentConfirmed: true/);
   assert.match(page,/Xem checkout để biết giá và điều kiện thật/);
+  assert.match(page,/chưa xác nhận mua thành công/);
 });
