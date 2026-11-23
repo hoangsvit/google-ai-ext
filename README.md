@@ -82,6 +82,21 @@ The recording does **not** show the iOS `90p` or `75p` SKU variants. Absence fro
 
 **Privacy:** no original HAR, cookies, tokens, account identifiers, or transaction payloads are committed to this repository. Tests use manually constructed synthetic records with the same relevant shape.
 
+## Findings from additional HAR: AI Pro 5 TB, YouTube Premium and AI Plus
+
+The user's third Google One capture (`one.google.com(2).har`, analyzed locally on 23 November 2026) contains **22 POST requests**, including six Google One subscription RPCs and two Google Play Commerce checkout RPCs. Sanitized product information:
+
+| Plan seen in the captured request | Product ID | Base plan | Displayed monthly price |
+|---|---|---|---|
+| Google AI Pro 5 TB + YouTube Premium | `g1.play.sapphire` | `monthly-transit` | 159.000 ₫ |
+| Google AI Pro 5 TB | `g1.play.2tb.ai.student` | `monthly` | 489.000 ₫ |
+| Google AI Pro 5 TB | `g1.play.2tb.ai.student` | `monthly-transit` | 122.000 ₫ |
+| Google AI Plus 400 GB | `g1.play.helium.student` | `monthly` | 132.000 ₫ |
+
+**Important:** `monthly` and `monthly-transit` are **distinct base plans**, not two chronological phases of one offer. Their 489k/122k difference is about 75.1%, but does not demonstrate an account can select the cheaper base plan or that a fixed-term promotion exists. Product details seen in a request do not prove successful checkout. The extension now compares same-product, same-currency, same-cycle base plans and explicitly labels eligibility as unverified.
+
+The original HAR was **not committed**. Offline tests contain constructed data with the same relevant plan metadata, with no cookies, email addresses, tokens or purchase IDs.
+
 ## Known limitations
 
 - Chrome's browser-side inspector does not run on iPhone Google App / native Android Google One. Google can change page markup, RPC endpoints, pricing format, regional language, and offer visibility without notice. Some plans may be missed or misclassified.
@@ -99,6 +114,7 @@ entrypoints/google-network-bridge.content.ts Whitelisted bridge to extension con
 entrypoints/background.ts                 Temporary per-tab network summary buffer
 lib/network-offers.ts                     Bounded Google commerce & HAR metadata parser
 lib/offer-assessment.ts                    Price-phase classification; no eligibility claims
+lib/base-plan-comparison.ts                Compare distinct eligible-looking base-plan price options
 entrypoints/popup/            Accessible extension popup
 lib/offers.ts                 Pure plan text classifier
 lib/offers-dom.ts             Visible DOM card discovery
