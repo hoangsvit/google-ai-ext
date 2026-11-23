@@ -22,14 +22,6 @@
       <button id="open" class="primary" type="button">Mở Google One</button>
       <button id="reload" class="secondary" type="button">Tải lại trang</button>
     </div>
-    <section class="result-section" aria-labelledby="rpc-title">
-      <div class="section-header"><h2 id="rpc-title">SKU từ HTML / request / response</h2><span id="rpc-count" class="counter">0</span></div>
-      <div id="network-results" class="results" aria-live="polite"><div class="empty">Chưa có dữ liệu RPC.</div></div>
-    </section>
-    <section class="result-section" aria-labelledby="dom-title">
-      <div class="section-header"><h2 id="dom-title">Gói hiển thị trên trang</h2><span id="dom-count" class="counter">0</span></div>
-      <div id="dom-results" class="results" aria-live="polite"><div class="empty">Chưa tìm thấy gói trên giao diện.</div></div>
-    </section>
     <details class="fold" open>
       <summary>Chọn SKU thực tế → mở checkout Google</summary>
       <p>Chọn SKU và giá vừa phát hiện trên tab Google One. Extension sẽ tìm đúng nút đăng ký có SKU và giá đó. Không gửi SKU giả hoặc tự thanh toán.</p>
@@ -43,6 +35,14 @@
       </div>
       <p id="official-status" class="hint" role="status">Chỉ tiếp tục khi Google có nút đăng ký tương ứng. Giá, Base Plan và quyền ưu đãi phải được kiểm tra lại tại checkout.</p>
     </details>
+    <section class="result-section" aria-labelledby="rpc-title">
+      <div class="section-header"><h2 id="rpc-title">SKU từ HTML / request / response</h2><span id="rpc-count" class="counter">0</span></div>
+      <div id="network-results" class="results" aria-live="polite"><div class="empty">Chưa có dữ liệu RPC.</div></div>
+    </section>
+    <section class="result-section" aria-labelledby="dom-title">
+      <div class="section-header"><h2 id="dom-title">Gói hiển thị trên trang</h2><span id="dom-count" class="counter">0</span></div>
+      <div id="dom-results" class="results" aria-live="polite"><div class="empty">Chưa tìm thấy gói trên giao diện.</div></div>
+    </section>
     <details class="fold">
       <summary>Đọc file HAR cục bộ (nếu cần)</summary>
       <p>Chỉ dùng khi cần kiểm tra một bản ghi đã lưu. File HAR có thể chứa dữ liệu phiên nhạy cảm, không chia sẻ công khai.</p>

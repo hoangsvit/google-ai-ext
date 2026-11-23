@@ -42,6 +42,32 @@ bootstrap catalog does not guarantee Google will permit checkout at that price.
 The original saved HTML, account attributes and billing tokens are **not committed**;
 tests use synthetic, sanitized equivalents.
 
+## SKU-specific official checkout entry
+
+**Use the new selector at the top of the popup:** Open a signed-in
+`one.google.com` tab, let the inspector automatically capture the
+catalog, then choose a **SKU actually captured from that tab**, including
+its observed VND price. The selector is dynamically built from the
+current tab's metadata, *not* from hard-coded demo or invented checkout
+options. HAR imports cannot authorize a checkout selection.
+
+Click **Kiểm tra nút đăng ký**: the extension searches for the one visible
+Google One plan-entry element whose `jslog` references that exact SKU,
+with the same price visible next to it. It highlights the real button.
+Only then does **Mở checkout Google** become enabled. Clicking it invokes
+the existing Google One CTA once, so the site's own code may make its
+normal authenticated requests. No purchase is completed automatically.
+
+**Crucial:** A product ID and displayed price do not reveal all
+session-bound checkout parameters or prove eligibility for a particular
+`basePlanId`, `offerId` or student/discount offer. The extension does
+**not** assemble private Play Commerce purchase RPCs, override Google
+responses, reuse offer tokens or invent entitlement. If a catalog SKU
+has no matching live CTA, the extension refuses to proceed. If Google
+rejects checkout or a browser-generated click is ignored, the user must
+inspect the official page. Final purchase and pricing verification remain
+Google's responsibility.
+
 ## Other features
 
 - Local offline HAR import. Raw HAR may include secrets: never publish it.
