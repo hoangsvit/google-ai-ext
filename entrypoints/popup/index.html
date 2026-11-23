@@ -1,115 +1,67 @@
 <!doctype html>
 <html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0c1020" />
-    <title>Google One Offer Explorer</title>
-  </head>
-  <body>
-    <main class="app">
-      <div class="brandline">
-        <div class="logo" aria-hidden="true">G<span>1</span></div>
-        <span>ePlus.DEV <span class="separator">/</span> GOOGLE ONE</span>
-        <span class="version">v0.1</span>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="theme-color" content="#0b1020"/>
+  <title>Google One — Live Offers</title>
+</head>
+<body>
+  <main class="app">
+    <div class="brand"><span class="brand-icon">G1</span><span>ePlus.DEV / GOOGLE ONE</span><span class="version">v0.2</span></div>
+    <header>
+      <p class="eyebrow">LIVE OFFER DETECTION</p>
+      <h1>Tự động nhận diện gói Google One</h1>
+      <p class="intro">Mở Google One là extension tự quan sát request và gói đang hiển thị. Không cần bấm Quét.</p>
+    </header>
+    <div id="live-state" class="live-state" role="status" aria-live="polite">
+      <span class="pulse" aria-hidden="true"></span><span id="connection">Đang kiểm tra tab...</span>
+    </div>
+    <p id="activity" class="activity">Đang chờ dữ liệu trang và RPC.</p>
+    <div class="actions">
+      <button id="open" class="primary" type="button">Mở Google One</button>
+      <button id="reload" class="secondary" type="button">Tải lại trang</button>
+    </div>
+    <section class="result-section" aria-labelledby="rpc-title">
+      <div class="section-header"><h2 id="rpc-title">Gói từ request / response</h2><span id="rpc-count" class="counter">0</span></div>
+      <div id="network-results" class="results" aria-live="polite"><div class="empty">Chưa có dữ liệu RPC.</div></div>
+    </section>
+    <section class="result-section" aria-labelledby="dom-title">
+      <div class="section-header"><h2 id="dom-title">Gói hiển thị trên trang</h2><span id="dom-count" class="counter">0</span></div>
+      <div id="dom-results" class="results" aria-live="polite"><div class="empty">Chưa tìm thấy gói trên giao diện.</div></div>
+    </section>
+    <details class="fold">
+      <summary>Chọn gói trên Google One chính thức</summary>
+      <p>Chỉ thao tác với nút gói đang có trên trang Google; không sửa SKU, giá hay tự thanh toán.</p>
+      <label for="official-choice">Gói muốn tìm</label>
+      <select id="official-choice">
+        <option value="plus">AI Plus · giá Google hiển thị</option>
+        <option value="plus-132">AI Plus · 132.000 ₫ (nếu có)</option>
+        <option value="pro">AI Pro · giá Google hiển thị</option>
+        <option value="pro-489">AI Pro · 489.000 ₫ (nếu có)</option>
+        <option value="pro-122">AI Pro · 122.000 ₫ (nếu có)</option>
+        <option value="pro-youtube">AI Pro + YouTube · 159.000 ₫ (nếu có)</option>
+        <option value="ultra">AI Ultra · giá Google hiển thị</option>
+      </select>
+      <div class="official-actions">
+        <button id="official-preview" class="secondary" type="button">Tìm nút gói</button>
+        <button id="official-launch" class="primary" type="button" disabled>Mở gói qua Google</button>
       </div>
-
-      <header>
-        <span class="eyebrow">OFFER INTELLIGENCE</span>
-        <h1>Google One<br /><em>Offer Explorer.</em></h1>
-        <p>Kiểm tra gói, giá và ưu đãi trên giao diện Google One.</p>
-      </header>
-
-      <div class="notice"><span class="dot" aria-hidden="true"></span><strong>Read-only</strong><span>Không sửa gói, giá hoặc thanh toán</span></div>
-
-      <div class="actions">
-        <button id="scan" class="primary" type="button">Quét gói trên trang <span aria-hidden="true">↗</span></button>
-        <button id="open" class="secondary" type="button">Mở Google One</button>
-      </div>
-
-      <p id="status" class="status" role="status" aria-live="polite">Mở one.google.com/ai, rồi nhấn Quét gói.</p>
-
-      <section class="results-section" aria-labelledby="results-title">
-        <div class="section-header">
-          <h2 id="results-title">Gói phát hiện</h2>
-          <span id="count" class="count">0</span>
-        </div>
-        <div id="results" class="results" aria-live="polite">
-          <div class="empty">Chưa có dữ liệu. Kết quả chỉ phản ánh nội dung hiển thị trên trang của bạn.</div>
-        </div>
-      </section>
-
-
-      <section class="official-flow" aria-labelledby="official-heading">
-        <div class="section-header">
-          <h2 id="official-heading">Mở gói trên Google One thật</h2>
-          <span class="network-tag">CHÍNH THỨC</span>
-        </div>
-        <p class="network-explain">Chọn gói → tìm nút Google đang hiển thị → bạn quyết định mở luồng đăng ký. Không gửi SKU giả, không thanh toán tự động.</p>
-        <label for="official-choice" class="demo-label">Gói / giá muốn tìm trên trang Google</label>
-        <select id="official-choice" class="demo-select">
-          <option value="plus">AI Plus · giá Google đang hiển thị</option>
-          <option value="plus-132">AI Plus · 132.000 ₫ (nếu xuất hiện)</option>
-          <option value="pro">AI Pro · giá Google đang hiển thị</option>
-          <option value="pro-489">AI Pro · 489.000 ₫ (nếu xuất hiện)</option>
-          <option value="pro-122">AI Pro · 122.000 ₫ (nếu xuất hiện)</option>
-          <option value="pro-youtube">AI Pro + YouTube · 159.000 ₫ (nếu xuất hiện)</option>
-          <option value="ultra">AI Ultra · giá Google đang hiển thị</option>
-        </select>
-        <div class="official-actions">
-          <button id="official-site" class="secondary" type="button">Mở Google One</button>
-          <button id="official-preview" class="secondary" type="button">Tìm gói trên trang</button>
-          <button id="official-launch" class="primary" type="button" disabled>Mở gói qua Google</button>
-        </div>
-        <p id="official-status" class="official-status" role="status" aria-live="polite">
-          Mở trang gói Google One, chọn gói và nhấn Tìm gói trên trang.
-        </p>
-      </section>
-
-      <section class="network" aria-labelledby="network-heading">
-        <div class="section-header">
-          <h2 id="network-heading">Network Offer Inspector</h2>
-          <span class="network-tag">BETA · READ-ONLY</span>
-        </div>
-        <p class="network-explain">Đọc metadata có sẵn trong giao dịch mạng, không sửa SKU hoặc gửi yêu cầu mua hàng. Hãy tải lại Google One sau khi cài extension.</p>
-        <p id="offer-evidence" class="offer-evidence" role="status" aria-live="polite">Chưa có dữ liệu gói để đánh giá.</p>
-        <div class="network-actions">
-          <button id="network-refresh" class="secondary" type="button">Xem dữ liệu mạng</button>
-          <label for="demo-plan" class="demo-label">Gói mẫu cần thử</label>
-          <select id="demo-plan" class="demo-select" aria-label="Chọn gói mẫu">
-            <option value="pro-5tb">AI Pro 5 TB · 489k và 122k</option>
-            <option value="pro-youtube">AI Pro 5 TB + YouTube · 159k</option>
-            <option value="plus-400gb">AI Plus 400 GB · 132k</option>
-            <option value="ultra-3m">Ultra 30 TB · 3 tháng (giả lập)</option>
-          </select>
-          <button id="demo-offer" class="demo-button" type="button">Thử gói DEMO</button>
-          <button id="network-clear" class="text-button" type="button">Xóa bộ nhớ</button>
-        </div>
-        <button id="open-rewrite-lab" class="rewrite-lab-button" type="button">Mở Response Rewrite Lab ↗</button>
-        <p id="demo-note" class="demo-note" hidden>DEMO — Dữ liệu thử nghiệm dựa trên cấu trúc HAR. Đây không phải phản hồi thật của Google và không thể dùng để đăng ký.</p>
-        <div id="network-results" class="network-results" aria-live="polite">
-          <div class="empty">Chưa ghi nhận dữ liệu mạng cho tab này.</div>
-        </div>
-        <details class="har-section">
-          <summary>Phân tích file HAR trên máy</summary>
-          <p>Chỉ trích xuất mã sản phẩm, gói cơ sở và giá. Không tải HAR lên máy chủ. File HAR có thể chứa cookie/token: đừng chia sẻ công khai.</p>
-          <input id="har-file" type="file" accept=".har,.json,application/json" />
-          <span id="har-status" role="status">Chưa chọn file</span>
-        </details>
-      </section>
-
-      <details class="manual">
-        <summary>Không quét được? Phân tích nội dung thủ công</summary>
-        <label for="manual-input">Chỉ dán mô tả gói/giá, không dán thông tin cá nhân.</label>
-        <textarea id="manual-input" rows="3" maxlength="1800" placeholder="Google AI Ultra 30 TB, ưu đãi $19.99/tháng trong 3 tháng…"></textarea>
-        <button id="analyze" class="secondary" type="button">Phân tích mô tả</button>
-      </details>
-
-      <footer>
-        <span>Giá và điều kiện thật chỉ được xác nhận tại trang thanh toán chính thức.</span>
-        <a href="https://github.com/hoangsvit/google-ai-ext" target="_blank" rel="noopener noreferrer">Source code ↗</a>
-      </footer>
-    </main>
-    <script type="module" src="./main.ts"></script>
-  </body>
+      <p id="official-status" class="hint" role="status">Chọn gói, rồi tìm nút trên Google One.</p>
+    </details>
+    <details class="fold">
+      <summary>Đọc file HAR cục bộ (nếu cần)</summary>
+      <p>Chỉ dùng khi cần kiểm tra một bản ghi đã lưu. File HAR có thể chứa dữ liệu phiên nhạy cảm, không chia sẻ công khai.</p>
+      <input id="har-file" type="file" accept=".har,.json,application/json"/>
+      <p id="har-status" class="hint" role="status">Chưa chọn HAR.</p>
+      <button id="view-live" class="secondary" type="button" hidden>Quay lại dữ liệu trực tiếp</button>
+    </details>
+    <div class="bottom">
+      <button id="clear" class="text-button" type="button">Xóa dữ liệu tạm của tab</button>
+      <span>Giá và điều kiện cuối cùng do Google xác nhận.</span>
+      <a href="https://github.com/hoangsvit/google-ai-ext" target="_blank" rel="noopener noreferrer">Source code</a>
+    </div>
+  </main>
+  <script type="module" src="./main.ts"></script>
+</body>
 </html>
