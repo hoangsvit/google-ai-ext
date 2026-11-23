@@ -72,7 +72,7 @@ test('page performs only a two-stage official CTA click, not private billing RPC
   assert.match(source,/lastSkuPreview/);
   assert.match(source,/target\.click\(\)/);
   assert.doesNotMatch(source,/fetch\(|PlayCommerceAcquireUi|offerIdToken/);
-  assert.match(popup,/buildTrySkuList\(snapshot\.network\)/);
+  assert.match(popup,/buildTrySkuList\(currentSkuRows\(\)\)/);
   assert.match(popup,/G1_SKU_TRY/);
   assert.match(source,/G1_SKU_TRY/);
   assert.match(html,/Danh sách SKU · Bấm Thử/);
