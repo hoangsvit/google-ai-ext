@@ -14,15 +14,12 @@ export default defineContentScript({
     const MARKER = '__eplus_g1_network_summary_v1__';
     const MAX_BODY = 350_000;
     const emit = (payload: string, source: NetworkSource) => {
-      if (!payload || payload.length > MAX_BODY) return;
+      // Also report allowlisted RPC activity when the response has no SKU.
+      if (payload.length > MAX_BODY) return;
       try {
-        const offers = extractNetworkOffers(payload, source);
-        if (offers.length) {
-          window.postMessage({ kind: MARKER, offers }, window.location.origin);
-        }
-      } catch {
-        // This is a passive inspector. Never break the host application.
-      }
+        const offers = payload ? extractNetworkOffers(payload, source) : [];
+        window.postMessage({ kind: MARKER, activity: true, offers }, window.location.origin);
+      } catch { /* Never interrupt the host application. */ }
     };
     const matches = (url: string) => {
       try { return isGoogleOneCommerceUrl(new URL(url, window.location.href).href); }
@@ -50,8 +47,8 @@ export default defineContentScript({
             const length = Number(input.headers.get('content-length') || '0');
             if (!input.bodyUsed && length <= MAX_BODY) {
               void input.clone().text().then((body) => emit(body, 'request')).catch(() => {});
-            }
-          }
+            } else { emit('', 'request'); }
+          } else { emit('', 'request'); }
         }
       } catch { /* Ignore inspection errors without reissuing the request. */ }
 
@@ -83,6 +80,7 @@ export default defineContentScript({
       if (url && matches(url)) {
         if (typeof body === 'string') emit(body, 'request');
         else if (body instanceof URLSearchParams) emit(body.toString(), 'request');
+        else emit('', 'request');
         this.addEventListener('loadend', () => {
           try {
             if (this.status < 200 || this.status >= 300) return;

@@ -12,9 +12,9 @@ export default defineContentScript({
       if (event.source !== window || event.origin !== window.location.origin) return;
       const message: unknown = event.data;
       if (!message || typeof message !== 'object') return;
-      const eventData = message as { kind?: unknown; offers?: unknown };
+      const eventData = message as { kind?: unknown; activity?: unknown; offers?: unknown };
       if (eventData.kind !== '__eplus_g1_network_summary_v1__' ||
-          !Array.isArray(eventData.offers)) return;
+          eventData.activity !== true || !Array.isArray(eventData.offers)) return;
       const offers = eventData.offers.filter(isNetworkOffer).slice(0, 40).map((offer: NetworkOffer) => ({
         productId: offer.productId, plan: offer.plan,
         basePlanId: offer.basePlanId, offerId: offer.offerId,
@@ -22,10 +22,8 @@ export default defineContentScript({
         billingPeriod: offer.billingPeriod, source: offer.source,
         phaseIndex: offer.phaseIndex ?? null, priceMicros: offer.priceMicros ?? null,
       }));
-      if (offers.length) {
-        void browser.runtime.sendMessage({ kind: 'G1_NETWORK_CAPTURE', offers })
-          .catch(() => { /* ignore service worker sleep/restarts */ });
-      }
+      void browser.runtime.sendMessage({ kind: 'G1_NETWORK_CAPTURE', activity: true, offers })
+        .catch(() => { /* Ignore extension reloads; never affect Google One. */ });
     });
   },
 });
