@@ -46,7 +46,8 @@ export function analyzeOfferText(raw: string, source: OfferSource = 'manual'): O
     ?? text.match(/\b(\d{1,3})\s*%\s*(?:off|discount|giảm|saving)/i);
   const discount = percentMatch ? percentMatch[1] + '%' : null;
 
-  const freeWords = /(?:miễn\s*phí|dùng\s*thử\s*miễn\s*phí|free\s*(?:trial|for|months?|plan)|no\s*charge)\b/i.test(text)\n    || /\b0\s*(?:₫|VND|đồng)(?=\s|\/|$)/i.test(text);
+  const freeWords = /(?:miễn\s*phí|dùng\s*thử\s*miễn\s*phí|free\s*(?:trial|for|months?|plan)|no\s*charge)\b/i.test(text)
+    || /\b0\s*(?:₫|VND|đồng)(?=\s|\/|$)/i.test(text);
   const promoWords = /(?:ưu\s*đãi|khuyến\s*mãi|giảm\s*giá|discount|introductory|promotion|promo|special\s*offer|first\s+\d+\s+months?)/i.test(text);
   const kind: OfferKind = freeWords
     ? 'free-trial'
