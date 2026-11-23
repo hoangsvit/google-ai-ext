@@ -30,24 +30,18 @@
       <div class="section-header"><h2 id="dom-title">Gói hiển thị trên trang</h2><span id="dom-count" class="counter">0</span></div>
       <div id="dom-results" class="results" aria-live="polite"><div class="empty">Chưa tìm thấy gói trên giao diện.</div></div>
     </section>
-    <details class="fold">
-      <summary>Chọn gói trên Google One chính thức</summary>
-      <p>Chỉ thao tác với nút gói đang có trên trang Google; không sửa SKU, giá hay tự thanh toán.</p>
-      <label for="official-choice">Gói muốn tìm</label>
+    <details class="fold" open>
+      <summary>Chọn SKU thực tế → mở checkout Google</summary>
+      <p>Chọn SKU và giá vừa phát hiện trên tab Google One. Extension sẽ tìm đúng nút đăng ký có SKU và giá đó. Không gửi SKU giả hoặc tự thanh toán.</p>
+      <label for="official-choice">SKU muốn đăng ký</label>
       <select id="official-choice">
-        <option value="plus">AI Plus · giá Google hiển thị</option>
-        <option value="plus-132">AI Plus · 132.000 ₫ (nếu có)</option>
-        <option value="pro">AI Pro · giá Google hiển thị</option>
-        <option value="pro-489">AI Pro · 489.000 ₫ (nếu có)</option>
-        <option value="pro-122">AI Pro · 122.000 ₫ (nếu có)</option>
-        <option value="pro-youtube">AI Pro + YouTube · 159.000 ₫ (nếu có)</option>
-        <option value="ultra">AI Ultra · giá Google hiển thị</option>
+        <option value="">Đang đọc các SKU trên trang...</option>
       </select>
       <div class="official-actions">
-        <button id="official-preview" class="secondary" type="button">Tìm nút gói</button>
-        <button id="official-launch" class="primary" type="button" disabled>Mở gói qua Google</button>
+        <button id="official-preview" class="secondary" type="button" disabled>Kiểm tra nút đăng ký</button>
+        <button id="official-launch" class="primary" type="button" disabled>Mở checkout Google</button>
       </div>
-      <p id="official-status" class="hint" role="status">Chọn gói, rồi tìm nút trên Google One.</p>
+      <p id="official-status" class="hint" role="status">Chỉ tiếp tục khi Google có nút đăng ký tương ứng. Giá, Base Plan và quyền ưu đãi phải được kiểm tra lại tại checkout.</p>
     </details>
     <details class="fold">
       <summary>Đọc file HAR cục bộ (nếu cần)</summary>

@@ -2,7 +2,8 @@ import { browser } from 'wxt/browser';
 import { extractHarNetworkOffers, isNetworkOffer, uniqueNetworkOffers, type NetworkOffer } from '../../lib/network-offers';
 import { assessOffers, type OfferStatus } from '../../lib/offer-assessment';
 import { compareBasePlans } from '../../lib/base-plan-comparison';
-import { isOfficialGoogleOneUrl, isPlanChoiceId, OFFICIAL_GOOGLE_AI_PLANS_URL, type PlanChoiceId } from '../../lib/official-google-one';
+import { isOfficialGoogleOneUrl, OFFICIAL_GOOGLE_AI_PLANS_URL } from '../../lib/official-google-one';
+import { skuChoicesFromCapturedRows, type SkuSelection, type SkuChoice } from '../../lib/sku-selection';
 import type { Offer } from '../../lib/offers';
 import './style.css';
 
@@ -37,7 +38,7 @@ const empty: TabCapture = {
 let activeId: number | null = null;
 let snapshot: TabCapture = empty;
 let importedHar: NetworkOffer[] | null = null;
-let approved: { tabId: number; choice: PlanChoiceId } | null = null;
+let approved: { tabId: number; key: string; selection: SkuSelection } | null = null;
 
 const networkLabels: Record<OfferStatus, string> = {
   trial: 'Có giai đoạn miễn phí',
@@ -122,6 +123,7 @@ function renderDom(rows: Offer[]) {
 }
 function renderLive() {
   if (importedHar) return;
+  renderSkuChoices();
   connection.textContent = activeId === null
     ? 'Chưa mở Google One trong tab hiện tại'
     : snapshot.connected ? 'Đang theo dõi Google One tự động' : 'Đang chờ kết nối Google One…';
@@ -220,6 +222,8 @@ harFile.addEventListener('change', () => {
     try {
       const raw: unknown = JSON.parse(await file.text());
       importedHar = extractHarNetworkOffers(raw);
+      resetOfficial();
+      renderSkuChoices();
       viewLive.hidden = false;
       connection.textContent = 'Đang xem HAR cục bộ · KHÔNG phải dữ liệu live';
       activity.textContent = 'Đã phân tích ' + importedHar.length +
@@ -238,53 +242,119 @@ viewLive.addEventListener('click', () => {
   renderLive();
 });
 
+
+function skuKey(choice: SkuSelection): string {
+  return [choice.productId, choice.expectedPrice, choice.billingPeriod ?? ''].join('|');
+}
+
+function availableChoices(): SkuChoice[] {
+  // Only live tab captures qualify. Importing a HAR does not authorize a
+  // request for an old or another account's product.
+  return importedHar ? [] : skuChoicesFromCapturedRows(snapshot.network);
+}
+
 function resetOfficial() {
   approved = null;
   officialLaunch.disabled = true;
 }
-officialChoice.addEventListener('change', resetOfficial);
+
+function renderSkuChoices() {
+  const previousKey = officialChoice.value;
+  const items = availableChoices();
+  const placeholder = element('option', '', items.length
+    ? 'Chọn SKU đang được Google hiển thị'
+    : 'Chưa có SKU có giá trên tab Google One');
+  placeholder.value = '';
+  officialChoice.replaceChildren(placeholder);
+  for (const item of items) {
+    const option = element('option', '',
+      item.productId + ' · ' + item.expectedPrice +
+      (item.billingPeriod ? ' · ' + item.billingPeriod : '') +
+      (item.basePlanId ? ' · ' + item.basePlanId : ''));
+    option.value = skuKey(item);
+    officialChoice.append(option);
+  }
+  if (items.some((item) => skuKey(item) === previousKey)) {
+    officialChoice.value = previousKey;
+  } else {
+    resetOfficial();
+    officialChoice.value = '';
+  }
+  officialPreview.disabled = importedHar !== null || items.length === 0;
+}
+
+function getSkuSelection(): SkuSelection | null {
+  const key = officialChoice.value;
+  const item = availableChoices().find((choice) => skuKey(choice) === key);
+  if (!item) return null;
+  return {
+    productId: item.productId, expectedPrice: item.expectedPrice,
+    currency: item.currency, basePlanId: item.basePlanId,
+    billingPeriod: item.billingPeriod,
+  };
+}
+
+officialChoice.addEventListener('change', () => {
+  resetOfficial();
+  officialStatus.textContent =
+    'Đã chọn SKU. Nhấn Kiểm tra nút đăng ký để đối chiếu với Google One.';
+});
+
 officialPreview.addEventListener('click', () => {
   void (async () => {
     resetOfficial();
     officialPreview.disabled = true;
     try {
-      const choice = officialChoice.value;
+      const selection = getSkuSelection();
       const tabId = await currentGoogleTab();
-      if (!isPlanChoiceId(choice) || tabId === null) {
-        officialStatus.textContent = 'Hãy mở tab Google One trước.';
+      if (!selection || tabId === null) {
+        officialStatus.textContent = 'Hãy mở tab Google One và chọn một SKU có giá.';
         return;
       }
       const reply: unknown = await browser.tabs.sendMessage(tabId, {
-        kind: 'G1_OFFICIAL_PLAN_PREVIEW', choice,
+        kind: 'G1_SKU_PREVIEW', selection,
       });
       if (!reply || typeof reply !== 'object' || !('status' in reply)) {
-        officialStatus.textContent = 'Không thể tìm gói trên trang.';
+        officialStatus.textContent = 'Không thể tìm nút đăng ký tương ứng trên Google One.';
         return;
       }
       const result = reply as { status: string; message?: string };
       officialStatus.textContent = result.message ?? 'Không thấy gói khớp.';
       if (result.status === 'ready') {
-        approved = { tabId, choice };
+        approved = { tabId, key: skuKey(selection), selection };
         officialLaunch.disabled = false;
       }
-    } catch { officialStatus.textContent = 'Trang Google One đã thay đổi hoặc extension cần tải lại.'; }
-    finally { officialPreview.disabled = false; }
+    } catch {
+      officialStatus.textContent =
+        'Không kết nối được tab Google One. Tải lại trang một lần rồi thử lại.';
+    } finally {
+      officialPreview.disabled = availableChoices().length === 0;
+    }
   })();
 });
+
 officialLaunch.addEventListener('click', () => {
   void (async () => {
     const preview = approved;
     resetOfficial();
-    if (!preview || await currentGoogleTab() !== preview.tabId ||
-        officialChoice.value !== preview.choice) return;
+    const selected = getSkuSelection();
+    if (!preview || !selected || await currentGoogleTab() !== preview.tabId ||
+        skuKey(selected) !== preview.key) {
+      officialStatus.textContent = 'Tab hoặc SKU đã thay đổi. Kiểm tra lại trước khi tiếp tục.';
+      return;
+    }
     try {
       const reply: unknown = await browser.tabs.sendMessage(preview.tabId, {
-        kind: 'G1_OFFICIAL_PLAN_OPEN', choice: preview.choice,
+        kind: 'G1_SKU_OPEN', selection: preview.selection,
       });
-      officialStatus.textContent = reply && typeof reply === 'object' && 'message' in reply &&
-        typeof reply.message === 'string' ? reply.message :
-        'Hãy kiểm tra trang Google One trực tiếp.';
-    } catch { officialStatus.textContent = 'Không thể tự mở nút; hãy chọn trực tiếp trên Google One.'; }
+      const result = reply && typeof reply === 'object' && 'status' in reply
+        ? reply as { status: string; message?: string } : null;
+      officialStatus.textContent = result?.message ??
+        'Kiểm tra tab Google để xem checkout đã mở hay chưa.';
+    } catch {
+      officialStatus.textContent =
+        'Trang Google có thể đã điều hướng. Kiểm tra kết quả trên tab Google One.';
+    }
   })();
 });
 
