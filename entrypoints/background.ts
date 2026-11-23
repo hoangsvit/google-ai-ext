@@ -109,6 +109,15 @@ export default defineBackground(() => {
         ...previous, connected: true, dom, updatedAt: Date.now(),
       })).then(() => ({ ok: true }));
     }
+    if (message.kind === 'G1_BOOTSTRAP_CAPTURE') {
+      const found = safeNetwork(message.offers);
+      return update(tabId, (previous) => ({
+        ...previous, connected: true,
+        // Bootstrap data is not a network event: do not increase RPC count.
+        network: uniqueNetworkOffers([...found, ...previous.network]).slice(0, MAX_CAPTURED),
+        updatedAt: Date.now(),
+      })).then(() => ({ ok: true }));
+    }
     if (message.kind === 'G1_NETWORK_CAPTURE' && message.activity === true) {
       const found = safeNetwork(message.offers);
       return update(tabId, (previous) => ({
