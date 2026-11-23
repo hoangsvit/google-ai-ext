@@ -144,6 +144,26 @@ export default defineContentScript({
       }
       const selection = raw.selection;
       const matches = findSkuCta(selection);
+      if (raw.kind === 'G1_SKU_TRY') {
+        // One explicit click is enough to *start* Google's regular plan flow,
+        // never to approve payment. Historical examples may have no CTA here.
+        lastSkuPreview = null;
+        if (matches.length === 0) {
+          return { status: 'not-found',
+            message: 'Google chưa có nút đăng ký cho SKU và giá này trên trang hiện tại.' };
+        }
+        if (matches.length !== 1) {
+          return { status: 'ambiguous',
+            message: 'Có nhiều nút tương ứng; hãy chọn gói trực tiếp trên trang Google.' };
+        }
+        const target = matches[0]!.element;
+        target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        target.click();
+        return { status: 'clicked',
+          message: 'Đã nhấn nút đăng ký của Google cho ' +
+            selection.productId + ' · ' + selection.expectedPrice +
+            '. Xem checkout để biết giá và điều kiện thật.' };
+      }
       if (raw.kind === 'G1_SKU_PREVIEW') {
         lastSkuPreview = null;
         if (!matches.length) {
@@ -265,7 +285,7 @@ export default defineContentScript({
 
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (!message || typeof message !== 'object') return;
-      if (message.kind === 'G1_SKU_PREVIEW' || message.kind === 'G1_SKU_OPEN') {
+      if (message.kind === 'G1_SKU_TRY' || message.kind === 'G1_SKU_PREVIEW' || message.kind === 'G1_SKU_OPEN') {
         sendResponse(inspectSku(message as { selection?: unknown; kind?: unknown }));
         return;
       }
