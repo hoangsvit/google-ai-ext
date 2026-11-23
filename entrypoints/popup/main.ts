@@ -43,6 +43,7 @@ function currentSkuRows(): NetworkOffer[] {
   return uniqueNetworkOffers([...pageSkuOffers, ...snapshot.network]).slice(0, 40);
 }
 let tryInFlight = false;
+const skuTryResults = new Map<string, string>();
 
 const networkLabels: Record<OfferStatus, string> = {
   trial: 'Có giai đoạn miễn phí',
@@ -308,18 +309,23 @@ function renderTrySkuList() {
     if (choice.basePlanId) details.append(element('div', 'meta', 'Base Plan tham khảo: ' + choice.basePlanId));
     const button = element('button', 'primary try-sku-button', 'Thử');
     button.type = 'button';
-    const result = element('p', 'try-sku-result', '');
+    const resultKey = [choice.productId, choice.expectedPrice, choice.billingPeriod ?? ''].join('|');
+    const result = element('p', 'try-sku-result', skuTryResults.get(resultKey) ?? '');
+    const setResult = (message: string) => {
+      skuTryResults.set(resultKey, message);
+      result.textContent = message;
+    };
     button.addEventListener('click', () => {
       if (tryInFlight) return;
       void (async () => {
         tryInFlight = true;
         button.disabled = true;
         button.textContent = 'Đang thử...';
-        result.textContent = 'Đang tìm nút đăng ký chính thức trên Google One...';
+        setResult('Đang tìm nút đăng ký chính thức trên Google One...');
         try {
           const tabId = await currentGoogleTab();
           if (tabId === null) {
-            result.textContent = 'Hãy mở tab Google One trước, rồi bấm Thử lại.';
+            setResult('Hãy mở tab Google One trước, rồi bấm Thử lại.');
             return;
           }
           const selection = {
@@ -334,9 +340,9 @@ function renderTrySkuList() {
           });
           const message = reply && typeof reply === 'object' && 'message' in reply &&
             typeof reply.message === 'string' ? reply.message : null;
-          result.textContent = message ?? 'Chưa xác định được kết quả. Xem tab Google One.';
+          setResult(message ?? 'Chưa xác định được kết quả. Xem tab Google One.');
         } catch {
-          result.textContent = 'Không kết nối được Google One. Tải lại trang rồi thử lại.';
+          setResult('Không kết nối được Google One. Tải lại trang rồi thử lại.');
         } finally {
           tryInFlight = false;
           button.disabled = false;
