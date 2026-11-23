@@ -105,26 +105,51 @@ export default defineContentScript({
         'Đã nhấn nút mở gói trên website Google. Kiểm tra giá, thuế và điều kiện trên checkout chính thức trước khi thanh toán.' };
     };
 
+
+    // Detect visible plans automatically on page load and after Google SPA
+    // changes. Only sanitized Offer fields, never raw page HTML, leave the tab.
+    let lastFingerprint = '';
+    let captureTimer: ReturnType<typeof setTimeout> | undefined;
+    function captureVisible() {
+      try {
+        const offers = collectVisibleOffers(document);
+        const fingerprint = JSON.stringify(offers);
+        if (fingerprint === lastFingerprint) return;
+        lastFingerprint = fingerprint;
+        void browser.runtime.sendMessage({ kind: 'G1_DOM_CAPTURE', offers }).catch(() => {
+          // Extension may have been reloaded while this Google tab stayed open.
+          lastFingerprint = '';
+        });
+      } catch { /* Passive reader must never break the page. */ }
+    }
+    function scheduleCapture() {
+      if (captureTimer !== undefined) clearTimeout(captureTimer);
+      captureTimer = setTimeout(() => {
+        captureTimer = undefined;
+        captureVisible();
+      }, 300);
+    }
+    captureVisible();
+    const observer = new MutationObserver(scheduleCapture);
+    if (document.documentElement) {
+      observer.observe(document.documentElement, {
+        subtree: true, childList: true, characterData: true,
+      });
+    }
+    window.addEventListener('pageshow', scheduleCapture);
+    window.addEventListener('popstate', scheduleCapture);
+    window.addEventListener('hashchange', scheduleCapture);
+
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (!message || typeof message !== 'object') return;
       if (message.kind === 'G1_OFFICIAL_PLAN_PREVIEW' || message.kind === 'G1_OFFICIAL_PLAN_OPEN') {
         sendResponse(inspectAction(message as PlanMessage));
         return;
       }
-      if (message.kind !== 'GOOGLE_ONE_OFFERS_SCAN') return;
-      try {
-        sendResponse({
-          kind: 'GOOGLE_ONE_OFFERS_RESULT',
-          offers: collectVisibleOffers(document),
-          scannedAt: new Date().toISOString(),
-        });
-      } catch {
-        sendResponse({
-          kind: 'GOOGLE_ONE_OFFERS_RESULT',
-          offers: [],
-          scannedAt: new Date().toISOString(),
-          error: 'Unable to inspect visible plans on this page.',
-        });
+      if (message.kind === 'G1_DOM_REFRESH') {
+        lastFingerprint = '';
+        captureVisible();
+        sendResponse({ ok: true });
       }
     });
   },
