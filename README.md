@@ -61,6 +61,31 @@ there is no matching official button, the popup reports that result instead
 of assembling a private Play Billing request, guessing a URL, or substituting
 a different SKU/price. Tokens, cookies and payment data are never replayed.
 
+## What the Try button actually confirms
+
+The extension records a short (45-second) per-tab attempt window when **Thử**
+is pressed. It inspects matching Google One `SubscriptionsManagementUi` and
+Google Play `PlayCommerceAcquireUi` RPCs without modifying, replaying or
+logging raw billing bodies. It reports the allowlisted endpoint, HTTP status,
+and whether a product ID appeared in sanitized metadata. The trial is kept
+in MV3 session memory and its state is preserved briefly across navigation.
+
+- **Chưa gửi yêu cầu** means Google had no official matching plan-entry
+  control for that SKU and price (even after selecting the correct period).
+- **Đã nhấn nút, chưa quan sát request** means the local click occurred but
+  no matching commerce RPC was observed.
+- **Đã quan sát RPC / HTTP ...** means an RPC was observed within the
+  trial window. It **does not prove that RPC was caused by the click** or
+  that the chosen SKU, price or eligibility were accepted. HTTP 200 on a
+  `batchexecute` endpoint can still contain an application-level rejection.
+- No checkout or payment is submitted or completed by the extension.
+  Only Google can confirm a valid subscription checkout and final pricing.
+
+The provided HAR showed session-bound `skuDetailsToken` and
+`offerIdToken` values in private billing payloads. A bare product ID
+cannot reconstruct a valid authenticated purchase request. This PR
+intentionally does not fabricate or substitute these tokens.
+
 ## Other features
 
 - Local offline HAR import. Raw HAR may include secrets: never publish it.

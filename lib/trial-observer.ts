@@ -81,7 +81,7 @@ export function formatTrialStatus(state: TrialState): string {
       state.lastHttpStatus === 0 ? 'lỗi kết nối' : String(state.lastHttpStatus);
     const sku = state.skuSeenInRpc ? 'Có SKU trong dữ liệu quan sát được.' :
       'Chưa xác minh request chứa đúng SKU.';
-    return 'Google đã phản hồi RPC (HTTP ' + http + ', ' + state.endpoint +
+    return 'Đã quan sát phản hồi RPC trong thời gian thử (HTTP ' + http + ', ' + state.endpoint +
       '). ' + sku + ' HTTP 200 không đồng nghĩa được chấp nhận ưu đãi.';
   }
   if (state.requestCount) {
