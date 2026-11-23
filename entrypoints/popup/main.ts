@@ -2,6 +2,7 @@ import { browser } from 'wxt/browser';
 import { analyzeOfferText, type Offer, type OfferKind } from '../../lib/offers';
 import { extractHarNetworkOffers, isNetworkOffer, uniqueNetworkOffers, type NetworkOffer } from '../../lib/network-offers';
 import { assessOffers, summarizeAssessments, type OfferStatus } from '../../lib/offer-assessment';
+import { createDemoOffer, DEMO_LABEL } from '../../lib/demo-offer';
 import './style.css';
 
 type ScanReply = {
@@ -24,6 +25,8 @@ const networkResults = document.querySelector<HTMLElement>('#network-results')!;
 const harFile = document.querySelector<HTMLInputElement>('#har-file')!;
 const harStatus = document.querySelector<HTMLElement>('#har-status')!;
 const offerEvidence = document.querySelector<HTMLElement>('#offer-evidence')!;
+const demoOffer = document.querySelector<HTMLButtonElement>('#demo-offer')!;
+const demoNote = document.querySelector<HTMLElement>('#demo-note')!;
 
 const kindLabels: Record<OfferKind, string> = {
   'free-trial': 'Dùng thử miễn phí',
@@ -124,14 +127,18 @@ const networkKinds: Record<OfferStatus, string> = {
   unknown: 'Chưa xác định giá',
 };
 
-function renderNetwork(raw: NetworkOffer[]) {
+function renderNetwork(raw: NetworkOffer[], isDemo = false) {
+  demoNote.hidden = !isDemo;
+  networkResults.classList.toggle('demo-mode', isDemo);
   networkResults.replaceChildren();
   const assessments = assessOffers(uniqueNetworkOffers(raw.filter(isNetworkOffer)).slice(0, 40));
   const summary = summarizeAssessments(assessments);
-  offerEvidence.textContent = assessments.length
-    ? summary.products + ' sản phẩm · ' + summary.candidates +
-      ' gói có dấu hiệu ưu đãi. ' + summary.message
-    : 'Chưa có dữ liệu mạng để xác định ưu đãi. Tải lại Google One hoặc nhập file HAR.';
+  offerEvidence.textContent = isDemo
+    ? DEMO_LABEL + ' · 1 offer với 2 mức giá mẫu: $19.99 rồi $199.99/tháng. Ví dụ 3 tháng, không có dữ liệu tài khoản.'
+    : assessments.length
+      ? summary.products + ' sản phẩm · ' + summary.candidates +
+        ' gói có dấu hiệu ưu đãi. ' + summary.message
+      : 'Chưa có dữ liệu mạng để xác định ưu đãi. Tải lại Google One hoặc nhập file HAR.';
 
   if (!assessments.length) {
     networkResults.append(el('div', 'empty', 'Chưa có dữ liệu. Có thể nhập HAR hoặc quét lại trang Google One.'));
@@ -185,6 +192,11 @@ async function refreshNetwork() {
 }
 
 networkRefresh.addEventListener('click', () => void refreshNetwork());
+demoOffer.addEventListener('click', () => {
+  // Local-only fixture. Never send a request or patch the live page.
+  renderNetwork(createDemoOffer(), true);
+  harStatus.textContent = 'Dữ liệu giả lập được dựng trong popup; không thay response của Google.';
+});
 networkClear.addEventListener('click', () => {
   void (async () => {
     const tabId = await currentTabId();
