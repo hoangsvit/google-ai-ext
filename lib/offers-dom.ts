@@ -1,4 +1,4 @@
-import { analyzeOfferText, dedupeOffers, type Offer } from './offers';
+import { analyzeOfferText, dedupeOffers, type Offer } from './offers.ts';
 
 const PLAN_PATTERN = /(?:\b\d{1,3}\s*(?:TB|GB)\b|google\s*(?:ai\s*)?(?:ultra|pro|plus|one))/i;
 
