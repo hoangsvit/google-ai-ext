@@ -43,3 +43,9 @@ test('deduplicates offer cards', () => {
   const offer = analyzeOfferText('Google One 20 TB $10/month');
   assert.equal(dedupeOffers([offer, offer]).length, 1);
 });
+
+test('recognizes zero VND pricing as free instead of unknown', () => {
+  const offer = analyzeOfferText('Google One 2 TB 0 ₫/tháng');
+  assert.equal(offer.price, '0 ₫');
+  assert.equal(offer.kind, 'free-trial');
+});
