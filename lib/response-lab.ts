@@ -1,4 +1,5 @@
 import { createDemoOffer, type DemoVariant } from './demo-offer.ts';
+import { isNetworkOffer, type NetworkOffer } from './network-offers.ts';
 
 export const LAB_CATALOG_URL = 'https://response-lab.invalid/commerce/catalog';
 export const LAB_CHECKOUT_URL = 'https://response-lab.invalid/commerce/checkout';
@@ -61,6 +62,41 @@ function payloadFromFixture(variant: LabVariant): LabPayload {
   };
 }
 
+/**
+ * Convert a local HAR's already-sanitized metadata into a synthetic lab-only
+ * response. Never include raw cookies, account data, request bodies or tokens.
+ */
+export function createLabPayloadFromOffers(rows: NetworkOffer[]): LabPayload | null {
+  const usable = rows.filter(isNetworkOffer)
+    .filter((row) => Boolean(row.basePlanId && row.price))
+    .slice(0, 40);
+  const first = usable[0];
+  if (!first) return null;
+  const selected = usable.filter((row) => row.productId === first.productId);
+  const plans: LabPlan[] = [];
+  for (const row of selected) {
+    const key = [row.basePlanId, row.offerId].join('|');
+    let index = plans.findIndex((plan) =>
+      [plan.basePlanId, plan.offerId].join('|') === key);
+    if (index < 0) {
+      index = plans.length;
+      plans.push({ basePlanId: row.basePlanId, offerId: row.offerId, phases: [] });
+    }
+    plans[index]!.phases.push({
+      price: row.price,
+      billingPeriod: row.billingPeriod,
+      priceMicros: row.priceMicros ?? null,
+    });
+  }
+  return {
+    kind: 'eplus-response-lab',
+    labOnly: true,
+    productId: first.productId,
+    title: first.plan ?? 'Google One — imported HAR metadata',
+    plans,
+  };
+}
+
 function basePayload(): LabPayload {
   return {
     kind: 'eplus-response-lab',
@@ -83,12 +119,12 @@ function basePayload(): LabPayload {
  * Local transport, not a Google request. Uses .invalid (reserved, non-routable)
  * and deliberately rejects anything other than an exact lab catalog URL.
  */
-export function createLabTransport(): FetchTransport {
+export function createLabTransport(payload: LabPayload = basePayload()): FetchTransport {
   return (async (input: RequestInfo | URL) => {
     if (getUrl(input) !== LAB_CATALOG_URL) {
       throw new Error('LAB is restricted to the synthetic catalog URL');
     }
-    return new Response(JSON.stringify(basePayload()), {
+    return new Response(JSON.stringify(payload), {
       status: 200,
       headers: { 'content-type': 'application/json; charset=utf-8', 'x-lab-origin': 'local' },
     });

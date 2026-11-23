@@ -63,7 +63,7 @@ The DEMO card is visually marked, cannot be purchased, is never inserted into th
 
 In **Network Offer Inspector**, click **Mở Response Rewrite Lab** to open an extension-owned, local-only test page. The page simulates an original JSON HTTP Response from the reserved non-routable endpoint `https://response-lab.invalid/commerce/catalog` and, with the toggle enabled, passes it through a Fetch wrapper that **actually creates and returns a replacement Response object** containing the chosen fictional offer.
 
-The lab shows the original and rewritten bodies side by side, and supports AI Pro, AI Plus, AI Pro + YouTube Premium, and Ultra 3-month synthetic examples. Turn the toggle off to compare pass-through behavior.
+The lab shows the original and rewritten bodies side by side. You may optionally import a local HAR (up to 8 MB) to derive the original response from *sanitized* product metadata. It then rewrites that synthetic response to a chosen fictional offer without transmitting the HAR or modifying the captured session. Supports AI Pro, AI Plus, AI Pro + YouTube Premium, and Ultra 3-month examples. Turn the toggle off to compare pass-through behavior.
 
 **Scope and limits:** The destination uses the reserved `.invalid` domain; no real network request or Google billing interaction takes place. A strict endpoint guard prevents rewriting `one.google.com`, `tokenized.play.google.com` and even the synthetic checkout endpoint. It never changes app account entitlements, SKU, receipts or payment prices. Local-only demonstration does not establish the Shadowrocket method can work on Chrome against Google billing.
 

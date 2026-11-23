@@ -26,6 +26,8 @@
           <option value="ultra-3m">Ultra 30 TB · 3 tháng (giá giả lập)</option>
         </select>
         <label class="switch"><input type="checkbox" id="rewrite" checked /> Bật thay response trong LAB</label>
+        <label for="har-input" class="har-label">Hoặc chọn HAR để dùng metadata thật làm response gốc</label>
+        <input id="har-input" type="file" accept=".har,.json,application/json" />
         <button type="button" id="run">Gửi request mô phỏng và xem kết quả</button>
         <p id="status" role="status">Chưa chạy thử. Mọi dữ liệu đều nằm trong trang extension này.</p>
       </section>

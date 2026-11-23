@@ -26,3 +26,6 @@ h2 { font-size: 16px; display: inline-block; margin: 4px 12px 14px 0; }
 pre { margin: 0; max-height: 470px; overflow: auto; padding: 14px; border: 1px solid #273959; background: #091528; border-radius: 9px; font-size: 11px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; color: #d4e5fb; }
 footer { margin-top: 19px; color: #8296b8; font-size: 12px; line-height: 1.6; }
 @media(max-width: 760px) { .flow { grid-template-columns: 1fr; } .container { padding: 18px 12px; } .controls { align-items: stretch; } .controls label, .controls select { width: 100%; } }
+
+.har-label { width: 100%; flex: 1 1 100%; }
+#har-input { width: 100%; color: #b6cff0; font-size: 12px; }

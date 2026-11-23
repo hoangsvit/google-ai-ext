@@ -76,3 +76,39 @@ test('response lab page exists and popup opens only this extension page', () => 
   assert.match(lab, /LAB ONLY/);
   assert.doesNotMatch(lab, /https:\/\/one\.google\.com\/api/);
 });
+
+test('HAR metadata can be replayed as a synthetic lab response without raw tokens', async () => {
+  const { extractNetworkOffers } = await import('../lib/network-offers.ts');
+  const { createLabPayloadFromOffers } = await import('../lib/response-lab.ts');
+  const secret = 'SENSITIVE_PURCHASE_TOKEN_12345';
+  const product = {
+    productId: 'g1.play.2tb.ai.student',
+    title: 'Google AI Pro (5 TB)',
+    checkoutToken: secret,
+    subscriptionOfferDetails: [
+      { basePlanId: 'monthly', pricingPhases: [{
+        formattedPrice: '489.000 ₫', priceCurrencyCode: 'VND',
+        priceAmountMicros: 489000000000, billingPeriod: 'P1M',
+      }] },
+      { basePlanId: 'monthly-transit', pricingPhases: [{
+        formattedPrice: '122.000 ₫', priceCurrencyCode: 'VND',
+        priceAmountMicros: 122000000000, billingPeriod: 'P1M',
+      }] },
+    ],
+  };
+  const safeRows = extractNetworkOffers(JSON.stringify(product), 'request');
+  const imported = createLabPayloadFromOffers(safeRows);
+  assert.ok(imported);
+  assert.equal(imported.productId, 'g1.play.2tb.ai.student');
+  assert.equal(imported.plans.length, 2);
+  assert.equal(JSON.stringify(imported).includes(secret), false);
+
+  const transport = createLabTransport(imported);
+  const baseline = await readLabPayload(await transport(LAB_CATALOG_URL));
+  assert.equal(baseline.productId, 'g1.play.2tb.ai.student');
+
+  const wrapped = createLabResponseRewriter(transport, () => true, () => 'ultra-3m');
+  const rewritten = await readLabPayload(await wrapped(LAB_CATALOG_URL));
+  assert.equal(rewritten.productId, 'g1.demo.ultra.3m');
+  assert.equal(JSON.stringify(rewritten).includes(secret), false);
+});
