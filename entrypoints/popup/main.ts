@@ -3,7 +3,7 @@ import { extractHarNetworkOffers, isNetworkOffer, uniqueNetworkOffers, type Netw
 import { assessOffers, type OfferStatus } from '../../lib/offer-assessment';
 import { compareBasePlans } from '../../lib/base-plan-comparison';
 import { isOfficialGoogleOneUrl, OFFICIAL_GOOGLE_AI_PLANS_URL } from '../../lib/official-google-one';
-import { buildTrySkuList, historicalSkuCount } from '../../lib/sku-catalog';
+import { buildTrySkuList } from '../../lib/sku-catalog';
 import { formatTrialStatus, type TrialState } from '../../lib/trial-observer';
 import type { Offer } from '../../lib/offers';
 import './style.css';
