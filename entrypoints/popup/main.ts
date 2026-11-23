@@ -1,6 +1,7 @@
 import { browser } from 'wxt/browser';
 import { analyzeOfferText, type Offer, type OfferKind } from '../../lib/offers';
 import { extractHarNetworkOffers, isNetworkOffer, uniqueNetworkOffers, type NetworkOffer } from '../../lib/network-offers';
+import { assessOffers, summarizeAssessments, type OfferStatus } from '../../lib/offer-assessment';
 import './style.css';
 
 type ScanReply = {
@@ -22,6 +23,7 @@ const networkClear = document.querySelector<HTMLButtonElement>('#network-clear')
 const networkResults = document.querySelector<HTMLElement>('#network-results')!;
 const harFile = document.querySelector<HTMLInputElement>('#har-file')!;
 const harStatus = document.querySelector<HTMLElement>('#har-status')!;
+const offerEvidence = document.querySelector<HTMLElement>('#offer-evidence')!;
 
 const kindLabels: Record<OfferKind, string> = {
   'free-trial': 'Dùng thử miễn phí',
@@ -114,26 +116,43 @@ analyze.addEventListener('click', () => {
 });
 
 /** Repeated text nodes are created safely via textContent rather than HTML. */
+const networkKinds: Record<OfferStatus, string> = {
+  trial: 'Có giai đoạn dùng thử',
+  introductory: 'Có giá giới thiệu',
+  'offer-candidate': 'Có Offer ID · cần xác nhận giá',
+  standard: 'Gói theo giá thông thường',
+  unknown: 'Chưa xác định giá',
+};
+
 function renderNetwork(raw: NetworkOffer[]) {
   networkResults.replaceChildren();
-  const offers = uniqueNetworkOffers(raw.filter(isNetworkOffer)).slice(0, 40);
-  if (!offers.length) {
-    networkResults.append(el('div', 'empty', 'Chưa có metadata. Tải lại Google One và mở các gói theo cách bình thường, hoặc nhập HAR.'));
+  const assessments = assessOffers(uniqueNetworkOffers(raw.filter(isNetworkOffer)).slice(0, 40));
+  const summary = summarizeAssessments(assessments);
+  offerEvidence.textContent = assessments.length
+    ? summary.products + ' sản phẩm · ' + summary.candidates +
+      ' gói có dấu hiệu ưu đãi. ' + summary.message
+    : 'Chưa có dữ liệu mạng để xác định ưu đãi. Tải lại Google One hoặc nhập file HAR.';
+
+  if (!assessments.length) {
+    networkResults.append(el('div', 'empty', 'Chưa có dữ liệu. Có thể nhập HAR hoặc quét lại trang Google One.'));
     return;
   }
-  for (const offer of offers) {
+
+  for (const offer of assessments) {
     const card = el('article', 'net-card');
     card.append(el('h3', '', offer.plan ?? 'Google One · sản phẩm'));
     card.append(el('div', 'net-code', offer.productId));
-    card.append(el('div', 'net-price', offer.price ?? 'Giá chưa xác định'));
+    card.append(el('div', 'offer-state', networkKinds[offer.kind]));
+    card.append(el('div', 'net-price', offer.initialPrice ?? 'Giá chưa xác định'));
+
     const attributes = [
       offer.basePlanId && 'Base plan: ' + offer.basePlanId,
-      offer.offerId && 'Offer: ' + offer.offerId,
+      offer.offerId && 'Offer ID: ' + offer.offerId,
       offer.billingPeriod && 'Chu kỳ: ' + offer.billingPeriod,
-      offer.currency && 'Tiền tệ: ' + offer.currency,
-      'Từ ' + (offer.source === 'request' ? 'request' : 'response'),
+      offer.laterPrice && 'Giá sau ưu đãi: ' + offer.laterPrice,
+      offer.phaseCount > 1 && 'Các giai đoạn giá: ' + offer.phaseCount,
     ].filter((item): item is string => Boolean(item));
-    card.append(el('div', 'net-meta', attributes.join(' · ')));
+    if (attributes.length) card.append(el('div', 'net-meta', attributes.join(' · ')));
     networkResults.append(card);
   }
 }
