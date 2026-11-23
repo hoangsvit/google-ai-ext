@@ -30,6 +30,7 @@ export default defineBackground(() => {
         basePlanId: offer.basePlanId, offerId: offer.offerId,
         price: offer.price, currency: offer.currency,
         billingPeriod: offer.billingPeriod, source: offer.source,
+        phaseIndex: offer.phaseIndex ?? null, priceMicros: offer.priceMicros ?? null,
       }));
       byTab.set(tabId, uniqueNetworkOffers([...(byTab.get(tabId) ?? []), ...safe]).slice(0, 40));
       return;
