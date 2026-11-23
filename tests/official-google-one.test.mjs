@@ -58,8 +58,8 @@ test('Google page integration has preview-before-open and no HAR/checkout replay
   assert.match(page, /G1_OFFICIAL_PLAN_OPEN/);
   assert.match(page, /candidate\.click\(\)/);
   assert.match(popup, /browser\.tabs\.sendMessage/);
-  assert.match(html, /id="official-choice"/);
-  assert.match(html, /id="official-preview"/);
-  assert.match(html, /id="official-launch"/);
+  assert.match(html, /id="sku-try-list"/);
+  assert.match(popup, /kind: 'G1_SKU_TRY'/);
+  assert.doesNotMatch(html, /id="official-choice"|id="official-preview"|id="official-launch"/);
   assert.doesNotMatch(page, /PlayCommerceAcquireUi|fetch\(|offerIdToken|f\.req/);
 });

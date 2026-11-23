@@ -72,9 +72,9 @@ test('page performs only a two-stage official CTA click, not private billing RPC
   assert.match(source,/lastSkuPreview/);
   assert.match(source,/target\.click\(\)/);
   assert.doesNotMatch(source,/fetch\(|PlayCommerceAcquireUi|offerIdToken/);
-  assert.match(popup,/skuChoicesFromCapturedRows\(snapshot\.network\)/);
-  assert.match(popup,/G1_SKU_PREVIEW/);
-  assert.match(popup,/G1_SKU_OPEN/);
-  assert.match(html,/SKU thực tế → mở checkout Google/);
+  assert.match(popup,/buildTrySkuList\(snapshot\.network\)/);
+  assert.match(popup,/G1_SKU_TRY/);
+  assert.match(source,/G1_SKU_TRY/);
+  assert.match(html,/Danh sách SKU · Bấm Thử/);
   assert.doesNotMatch(html,/option value="pro-122"|demo-offer/);
 });

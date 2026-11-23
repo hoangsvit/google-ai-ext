@@ -10,9 +10,11 @@ test('Chrome popup has fixed intrinsic 420px width', () => {
 });
 test('popup shows live network and DOM, not demo or manual scan controls', () => {
   for (const id of ['open','reload','network-results','dom-results','har-file',
-    'live-state','official-choice','official-preview','official-launch']) {
+    'live-state','sku-try-list','sku-trial-count']) {
     assert.match(html,new RegExp('id="' + id + '"'));
   }
   assert.doesNotMatch(html,/id="scan"|id="demo-offer"|Response Rewrite Lab|Thử gói DEMO/i);
   assert.match(html,/Không cần bấm Quét/);
+  assert.match(html,/Danh sách SKU · Bấm Thử/);
+  assert.doesNotMatch(html,/id="official-choice"|id="official-preview"|id="official-launch"/);
 });
