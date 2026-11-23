@@ -108,3 +108,11 @@ footer a:hover { text-decoration: underline; }
   font-weight: 700;
   margin: 4px 0;
 }
+
+/* Explicitly separated, on-demand demo state; never styled as a real offer. */
+.demo-button { border: 1px solid #ac8343 !important; border-radius: 8px; background: #423216; color: #ffde9a; font-size: 10px; font-weight: 700; padding: 8px 10px; cursor: pointer; }
+.demo-button:hover { background: #554021; }
+.demo-note { padding: 10px; border: 1px dashed #d6a353; border-radius: 9px; background: #3b2d1a; color: #ffe0ac; font-size: 11px; line-height: 1.5; }
+.demo-note[hidden] { display: none; }
+.network-actions { flex-wrap: wrap; }
+.network-results.demo-mode .net-card { border: 1px dashed #ca9652; }
