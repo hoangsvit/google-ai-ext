@@ -6,7 +6,7 @@ Chrome / Edge extension using WXT, TypeScript and Manifest V3. Opens Google One 
 
 1. Visit https://one.google.com/ai or the official Google AI plans page.
 2. Content scripts run at document_start and observe supported Google One / Play Commerce fetch and XMLHttpRequest traffic. Only structured product metadata leaves the page.
-3. A MutationObserver reads compact visible plan cards when Google One finishes loading or updates its SPA.
+3. Google may embed product data in initial HTML (`AF_initDataCallback`) and SKU hints in CTA `jslog` attributes. The content script reads and sanitizes these automatically, without running Google scripts. A MutationObserver also reads compact visible plan cards when Google One finishes loading or updates its SPA.
 4. Sanitized summaries are stored **per tab** in Chrome storage.session. This memory-only store survives MV3 service-worker sleep and is cleared on browser restart.
 5. The extension badge shows the number of detected plans; popup automatically loads the existing snapshot and updates when fresh data arrives.
 
@@ -15,6 +15,32 @@ The popup shows metadata from network RPCs separately from offers detected in vi
 The last uploaded HAR, one.google.com(4).har, had 8 POST entries. Its two Google subscription batchexecute calls did not include readable product IDs. Google does not necessarily send plan catalog data when a page first opens. The HAR does not confirm a discount or an available promo SKU.
 
 **If Google One was open before installing the extension**, reload that tab once so document_start hooks can observe later traffic. Thereafter normal navigation and SPA updates are automatic.
+
+## Initial-HTML bootstrap catalog (November 23, 2026)
+
+The supplied saved HTML file contains Google One's initial `AF_initDataCallback`
+data, including nested JSON **string literals** for the subscription products.
+The extension now safely parses those product strings **without executing Google
+scripts**, strips all fields except the allowlisted product/price metadata and
+deduplicates repeated records. It also reads product identifiers from the
+`jslog` attributes of compact plan buttons.
+
+The six distinct SKUs observed in that snapshot are:
+
+| SKU | Plan | Visible metadata price | Billing |
+|---|---|---|---|
+| `g1.helium.m` | AI Plus 400 GB | 132.000 ₫ | P1M |
+| `g1.helium.a` | AI Plus 400 GB | 1.319.000 ₫ | P1Y |
+| `g1.2tb.ai` | AI Pro 5 TB | 489.000 ₫ | P1M |
+| `g1.2tb.ai.annual` | AI Pro 5 TB | 5.000.000 ₫ | P1Y |
+| `g1.20tb.v2` | AI Ultra 20 TB | 2.250.000 ₫ | P1M |
+| `g1.ai.pro` | AI Ultra 30 TB | 5.500.000 ₫ | P1M |
+
+These are *observed product metadata*, not proof of entitlement, final taxes,
+promotional discounts or a completed purchase. A product appearing in the
+bootstrap catalog does not guarantee Google will permit checkout at that price.
+The original saved HTML, account attributes and billing tokens are **not committed**;
+tests use synthetic, sanitized equivalents.
 
 ## Other features
 

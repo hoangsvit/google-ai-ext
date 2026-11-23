@@ -79,7 +79,13 @@ function renderNetwork(rows: NetworkOffer[], events: number) {
     card.append(element('div', 'sku', offer.productId));
     card.append(element('div', 'tag', networkLabels[offer.kind]));
     card.append(element('div', 'price', offer.initialPrice ?? 'Chưa rõ giá'));
+    const provenance = [...new Set(safe.filter((row) =>
+      row.productId === offer.productId).map((row) => row.source))].map((source) =>
+      source === 'bootstrap' ? 'HTML khởi tạo' :
+      source === 'page' ? 'nút trên trang' :
+      source === 'request' ? 'request' : 'response');
     const fields = [
+      'Nguồn: ' + provenance.join(' + '),
       offer.basePlanId && 'Base Plan: ' + offer.basePlanId,
       offer.offerId && 'Offer ID: ' + offer.offerId,
       offer.billingPeriod && 'Chu kỳ: ' + offer.billingPeriod,
@@ -122,8 +128,11 @@ function renderLive() {
   activity.textContent = activeId === null
     ? 'Mở Google One rồi quay lại popup để xem các kết quả tự động.'
     : 'Đã quan sát ' + snapshot.networkEvents + ' lượt RPC · ' +
-      snapshot.network.length + ' bản ghi SKU · ' + snapshot.dom.length +
-      ' gói từ giao diện. Dữ liệu chỉ lưu trong phiên trình duyệt.';
+      snapshot.network.filter((row) => row.source === 'bootstrap' || row.source === 'page').length +
+      ' bản ghi SKU từ HTML · ' +
+      snapshot.network.filter((row) => row.source === 'request' || row.source === 'response').length +
+      ' bản ghi từ mạng · ' + snapshot.dom.length +
+      ' gói từ giao diện. Chỉ lưu trong phiên trình duyệt.';
   renderNetwork(snapshot.network, snapshot.networkEvents);
   renderDom(snapshot.dom);
 }
