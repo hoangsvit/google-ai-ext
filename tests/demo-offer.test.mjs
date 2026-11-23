@@ -35,3 +35,17 @@ test('demo is opt-in in popup and never injected into live network responses', (
   assert.doesNotMatch(main, /createDemoOffer|DEMO_PRODUCT_ID|DEMO_OFFER_ID/);
   assert.doesNotMatch(popup, /browser\.runtime\.sendMessage\([^\n]*createDemoOffer/);
 });
+
+test('three additional demo variants model the latest HAR without real product IDs', () => {
+  const pro = createDemoOffer('pro-5tb');
+  assert.equal(pro.length, 2);
+  assert.deepEqual(pro.map((r) => r.basePlanId), ['monthly', 'monthly-transit']);
+  assert.deepEqual(pro.map((r) => r.price), ['489.000 ₫', '122.000 ₫']);
+  assert.equal(pro.every((r) => r.productId.startsWith('g1.demo.')), true);
+  const yt = createDemoOffer('pro-youtube');
+  const plus = createDemoOffer('plus-400gb');
+  assert.equal(yt[0]?.price, '159.000 ₫');
+  assert.equal(plus[0]?.price, '132.000 ₫');
+  assert.equal(yt.every((r) => r.productId.startsWith('g1.demo.')), true);
+  assert.equal(plus.every((r) => r.productId.startsWith('g1.demo.')), true);
+});

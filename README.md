@@ -52,7 +52,9 @@ To install locally: run `npm run build`, then open `chrome://extensions` (or `ed
 
 ## Local demo offer (no Google checkout)
 
-In the popup's **Network Offer Inspector**, click **"Thử 1 offer DEMO"**. A **fictional** `g1.demo.ultra.3m` product with a `demo-3months` offer ID will be processed through the same network parsing and price-phase assessment pipeline. It demonstrates a sample introductory price of **$19.99/month for 3 months** followed by a sample **$199.99/month** renewal. Neither price nor product is a genuine Google offer.
+In the popup's **Network Offer Inspector**, select one demo plan and click **"Thử gói DEMO"**. A **fictional** `g1.demo.ultra.3m` product with a `demo-3months` offer ID will be processed through the same network parsing and price-phase assessment pipeline. It demonstrates a sample introductory price of **$19.99/month for 3 months** followed by a sample **$199.99/month** renewal. Neither price nor product is a genuine Google offer.
+
+The sample menu also offers *AI Pro 5 TB (489k vs 122k VND base plans)*, *AI Pro 5 TB with YouTube Premium (159k)* and *AI Plus 400 GB (132k)* using sanitized, fictional product IDs. They are modeled on observed plan metadata in the user's latest HAR but never imply checkout eligibility.
 
 The DEMO card is visually marked, cannot be purchased, is never inserted into the actual page's network responses, does not alter SKU/checkout, and is not stored or transmitted. Clicking **Xem dữ liệu mạng** returns to actual captured data.
 

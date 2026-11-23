@@ -116,3 +116,13 @@ footer a:hover { text-decoration: underline; }
 .demo-note[hidden] { display: none; }
 .network-actions { flex-wrap: wrap; }
 .network-results.demo-mode .net-card { border: 1px dashed #ca9652; }
+
+.demo-label { width: 100%; font-size: 10px; color: #b3c3e0; }
+.demo-select { flex: 1 1 100%; width: 100%; min-width: 0; padding: 9px 10px; border: 1px solid #5d6b85; border-radius: 8px; background: #18243d; color: #e7f0ff; font-size: 11px; }
+.demo-select:focus-visible { outline: 2px solid #81b5ff; outline-offset: 2px; }
+.compare-card { background: #19324c; border: 1px solid #5c8ca1; border-radius: 10px; padding: 12px; margin: 8px 0 12px; }
+.compare-card h3 { margin: 0 0 8px; font-size: 12px; color: #b9e9fa; }
+.compare-prices { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.compare-prices strong { color: #e4f8ff; font-size: 15px; }
+.compare-prices small { display: block; margin-bottom: 4px; color: #9fbcd4; font-size: 10px; overflow-wrap: anywhere; }
+.compare-warning { margin-top: 9px; font-size: 10px; line-height: 1.5; color: #becde1; }

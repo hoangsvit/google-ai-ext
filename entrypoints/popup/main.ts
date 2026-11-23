@@ -2,7 +2,8 @@ import { browser } from 'wxt/browser';
 import { analyzeOfferText, type Offer, type OfferKind } from '../../lib/offers';
 import { extractHarNetworkOffers, isNetworkOffer, uniqueNetworkOffers, type NetworkOffer } from '../../lib/network-offers';
 import { assessOffers, summarizeAssessments, type OfferStatus } from '../../lib/offer-assessment';
-import { createDemoOffer, DEMO_LABEL } from '../../lib/demo-offer';
+import { createDemoOffer, DEMO_LABEL, type DemoVariant } from '../../lib/demo-offer';
+import { compareBasePlans } from '../../lib/base-plan-comparison';
 import './style.css';
 
 type ScanReply = {
@@ -26,6 +27,7 @@ const harFile = document.querySelector<HTMLInputElement>('#har-file')!;
 const harStatus = document.querySelector<HTMLElement>('#har-status')!;
 const offerEvidence = document.querySelector<HTMLElement>('#offer-evidence')!;
 const demoOffer = document.querySelector<HTMLButtonElement>('#demo-offer')!;
+const demoPlan = document.querySelector<HTMLSelectElement>('#demo-plan')!;
 const demoNote = document.querySelector<HTMLElement>('#demo-note')!;
 
 const kindLabels: Record<OfferKind, string> = {
@@ -131,10 +133,14 @@ function renderNetwork(raw: NetworkOffer[], isDemo = false) {
   demoNote.hidden = !isDemo;
   networkResults.classList.toggle('demo-mode', isDemo);
   networkResults.replaceChildren();
-  const assessments = assessOffers(uniqueNetworkOffers(raw.filter(isNetworkOffer)).slice(0, 40));
+  const safeRows = uniqueNetworkOffers(raw.filter(isNetworkOffer)).slice(0, 40);
+  const assessments = assessOffers(safeRows);
+  const comparisons = compareBasePlans(safeRows);
   const summary = summarizeAssessments(assessments);
   offerEvidence.textContent = isDemo
-    ? DEMO_LABEL + ' · 1 offer với 2 mức giá mẫu: $19.99 rồi $199.99/tháng. Ví dụ 3 tháng, không có dữ liệu tài khoản.'
+    ? DEMO_LABEL + ' · Dữ liệu mẫu lấy từ fixture cục bộ, không kết nối API Google. ' +
+      (comparisons.length ? 'Có ' + comparisons.length + ' cặp base plan để so sánh.' :
+        'Xem thông tin gói mẫu bên dưới.')
     : assessments.length
       ? summary.products + ' sản phẩm · ' + summary.candidates +
         ' gói có dấu hiệu ưu đãi. ' + summary.message
@@ -143,6 +149,26 @@ function renderNetwork(raw: NetworkOffer[], isDemo = false) {
   if (!assessments.length) {
     networkResults.append(el('div', 'empty', 'Chưa có dữ liệu. Có thể nhập HAR hoặc quét lại trang Google One.'));
     return;
+  }
+
+  for (const comparison of comparisons) {
+    const card = el('article', 'compare-card');
+    card.append(el('h3', '', 'So sánh base plan · ' +
+      (comparison.plan ?? comparison.productId)));
+    const prices = el('div', 'compare-prices');
+    const higher = el('div');
+    higher.append(el('small', '', comparison.higherBasePlanId));
+    higher.append(el('strong', '', comparison.higherPrice));
+    const lower = el('div');
+    lower.append(el('small', '', comparison.lowerBasePlanId));
+    lower.append(el('strong', '', comparison.lowerPrice));
+    prices.append(higher, lower);
+    card.append(prices);
+    card.append(el('div', 'compare-warning',
+      'Chênh lệch ' + comparison.differencePercent.toLocaleString('vi-VN') +
+      '% cùng chu kỳ ' + comparison.billingPeriod +
+      '. Đây là hai base plan riêng, không phải giá giảm theo thời gian. Chưa xác minh điều kiện mua.'));
+    networkResults.append(card);
   }
 
   for (const offer of assessments) {
@@ -194,8 +220,11 @@ async function refreshNetwork() {
 networkRefresh.addEventListener('click', () => void refreshNetwork());
 demoOffer.addEventListener('click', () => {
   // Local-only fixture. Never send a request or patch the live page.
-  renderNetwork(createDemoOffer(), true);
-  harStatus.textContent = 'Dữ liệu giả lập được dựng trong popup; không thay response của Google.';
+  const supported: DemoVariant[] = ['ultra-3m', 'pro-5tb', 'pro-youtube', 'plus-400gb'];
+  const selected = supported.find((option) => option === demoPlan.value) ?? 'pro-5tb';
+  renderNetwork(createDemoOffer(selected), true);
+  harStatus.textContent = 'Đã nạp gói DEMO: ' + demoPlan.selectedOptions[0]?.textContent +
+    '. Không thay đổi response hoặc thanh toán Google.';
 });
 networkClear.addEventListener('click', () => {
   void (async () => {
