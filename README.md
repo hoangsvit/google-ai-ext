@@ -50,6 +50,12 @@ To install locally: run `npm run build`, then open `chrome://extensions` (or `ed
 - Page scripts could spoof the window-message bridge. Treat all displayed metadata as *untrusted diagnostic hints*, not authoritative billing details.
 - The `collectVisibleOffers` code only checks compact, visible plan containers and returns parsed fields.
 
+## Local demo offer (no Google checkout)
+
+In the popup's **Network Offer Inspector**, click **"Thử 1 offer DEMO"**. A **fictional** `g1.demo.ultra.3m` product with a `demo-3months` offer ID will be processed through the same network parsing and price-phase assessment pipeline. It demonstrates a sample introductory price of **$19.99/month for 3 months** followed by a sample **$199.99/month** renewal. Neither price nor product is a genuine Google offer.
+
+The DEMO card is visually marked, cannot be purchased, is never inserted into the actual page's network responses, does not alter SKU/checkout, and is not stored or transmitted. Clicking **Xem dữ liệu mạng** returns to actual captured data.
+
 ## Offer assessment based on real pricing phases
 
 The inspector now categorizes each product into:
