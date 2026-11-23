@@ -33,32 +33,33 @@ export default defineContentScript({
     // FormData, streams and Request objects are deliberately not consumed.
     const originalFetch = window.fetch;
     window.fetch = function (...args: Parameters<typeof fetch>): ReturnType<typeof fetch> {
+      const input = args[0];
+      let targeted = false;
       try {
-        const input = args[0];
         const url = typeof input === 'string' ? input
           : input instanceof URL ? input.href : input?.url ?? '';
-        if (matches(url)) {
-          if (typeof args[1]?.body === 'string') emit(args[1].body, 'request');
-          const promise = originalFetch.apply(window, args);
-          void promise.then((response) => {
-            if (!response.ok) return;
-            const length = Number(response.headers.get('content-length') || '0');
-            if (length > MAX_BODY) return;
-            void response.clone().text().then((body) => emit(body, 'response')).catch(() => {});
-          }).catch(() => {});
-          return promise;
-        }
-      } catch {
-        // On unexpected input, fall through to the original unmodified fetch.
+        targeted = matches(url);
+        if (targeted && typeof args[1]?.body === 'string') emit(args[1].body, 'request');
+      } catch { /* Ignore inspection errors without reissuing the request. */ }
+
+      // Call the original exactly once, regardless of URL or errors.
+      const promise = originalFetch.apply(window, args);
+      if (targeted) {
+        void promise.then((response) => {
+          if (!response.ok) return;
+          const length = Number(response.headers.get('content-length') || '0');
+          if (length > MAX_BODY) return;
+          void response.clone().text().then((body) => emit(body, 'response')).catch(() => {});
+        }).catch(() => {});
       }
-      return originalFetch.apply(window, args);
+      return promise;
     };
 
     const urls = new WeakMap<XMLHttpRequest, string>();
     const open = XMLHttpRequest.prototype.open;
     const send = XMLHttpRequest.prototype.send;
 
-    XMLHttpRequest.prototype.open = function (...args: unknown[]) {
+    XMLHttpRequest.prototype.open = function (this: XMLHttpRequest, ...args: unknown[]) {
       const target = args[1];
       if (typeof target === 'string') urls.set(this, target);
       return Reflect.apply(open, this, args) as void;
