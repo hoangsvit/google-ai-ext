@@ -29,14 +29,18 @@ jobs:
       - name: Create ZIP
         run: npm run zip
       - name: Upload unpacked extension
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: google-ai-ext-chrome-mv3
           path: .output/chrome-mv3/
           if-no-files-found: error
+      - name: Stage release ZIP
+        run: |
+          mkdir -p release
+          cp .output/*-chrome.zip release/google-ai-ext-chrome.zip
       - name: Upload ZIP
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: google-ai-ext-zip
-          path: .output/*.zip
-          if-no-files-found: warn
+          path: release/google-ai-ext-chrome.zip
+          if-no-files-found: error
