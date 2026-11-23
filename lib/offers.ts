@@ -34,7 +34,9 @@ export function analyzeOfferText(raw: string, source: OfferSource = 'manual'): O
     : hasPro
       ? 'Google AI Pro'
       : 'Google One';
-  const storage = storageMatch ? storageMatch[1] + ' ' + storageMatch[2].toUpperCase() : null;
+  const storage = storageMatch?.[1] && storageMatch?.[2]
+    ? storageMatch[1] + ' ' + storageMatch[2].toUpperCase()
+    : null;
 
   const money = text.match(/(?:US\$|A\$|CA\$|\$|€|£)\s*\d[\d,.]*/i)
     ?? text.match(/\b\d[\d.,\s]{0,14}\s*(?:₫|VND|đồng|đ)(?=\s|\/|$)/i);
