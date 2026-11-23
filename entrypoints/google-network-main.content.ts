@@ -13,17 +13,24 @@ export default defineContentScript({
   main() {
     const MARKER = '__eplus_g1_network_summary_v1__';
     const MAX_BODY = 350_000;
-    const emit = (payload: string, source: NetworkSource) => {
+    type Endpoint = 'subscriptions' | 'play-commerce';
+    const emit = (payload: string, source: NetworkSource,
+      endpoint: Endpoint, httpStatus: number | null = null) => {
       // Also report allowlisted RPC activity when the response has no SKU.
       if (payload.length > MAX_BODY) return;
       try {
         const offers = payload ? extractNetworkOffers(payload, source) : [];
-        window.postMessage({ kind: MARKER, activity: true, offers }, window.location.origin);
+        window.postMessage({ kind: MARKER, activity: true, offers,
+          rpc: { endpoint, stage: source, httpStatus } }, window.location.origin);
       } catch { /* Never interrupt the host application. */ }
     };
-    const matches = (url: string) => {
-      try { return isGoogleOneCommerceUrl(new URL(url, window.location.href).href); }
-      catch { return false; }
+    const category = (url: string): Endpoint | null => {
+      try {
+        const actual = new URL(url, window.location.href);
+        if (!isGoogleOneCommerceUrl(actual.href)) return null;
+        return actual.hostname === 'tokenized.play.google.com'
+          ? 'play-commerce' : 'subscriptions';
+      } catch { return null; }
     };
 
     // Read only clones or string/URLSearchParams bodies for matching commerce RPCs.
@@ -31,36 +38,41 @@ export default defineContentScript({
     const originalFetch = window.fetch;
     window.fetch = function (...args: Parameters<typeof fetch>): ReturnType<typeof fetch> {
       const input = args[0];
-      let targeted = false;
+      let endpoint: Endpoint | null = null;
       try {
         const url = typeof input === 'string' ? input
           : input instanceof URL ? input.href : input?.url ?? '';
-        targeted = matches(url);
-        if (targeted) {
+        endpoint = category(url);
+        if (endpoint) {
           const initBody = args[1]?.body;
           if (typeof initBody === 'string') {
-            emit(initBody, 'request');
+            emit(initBody, 'request', endpoint);
           } else if (initBody instanceof URLSearchParams) {
-            emit(initBody.toString(), 'request');
+            emit(initBody.toString(), 'request', endpoint);
           } else if (!initBody && input instanceof Request) {
             // A clone is consumed asynchronously; the original request is untouched.
             const length = Number(input.headers.get('content-length') || '0');
             if (!input.bodyUsed && length <= MAX_BODY) {
-              void input.clone().text().then((body) => emit(body, 'request')).catch(() => {});
-            } else { emit('', 'request'); }
-          } else { emit('', 'request'); }
+              void input.clone().text().then((body) => emit(body, 'request', endpoint!)).catch(() => {});
+            } else { emit('', 'request', endpoint); }
+          } else { emit('', 'request', endpoint); }
         }
       } catch { /* Ignore inspection errors without reissuing the request. */ }
 
       // Call the original exactly once, regardless of URL or errors.
       const promise = originalFetch.apply(window, args);
-      if (targeted) {
+      if (endpoint) {
+        const site = endpoint;
         void promise.then((response) => {
-          if (!response.ok) return;
           const length = Number(response.headers.get('content-length') || '0');
-          if (length > MAX_BODY) return;
-          void response.clone().text().then((body) => emit(body, 'response')).catch(() => {});
-        }).catch(() => {});
+          if (!response.ok || length > MAX_BODY) {
+            emit('', 'response', site, response.status);
+            return;
+          }
+          void response.clone().text()
+            .then((body) => emit(body, 'response', site, response.status))
+            .catch(() => emit('', 'response', site, response.status));
+        }).catch(() => emit('', 'response', site, 0));
       }
       return promise;
     };
@@ -77,16 +89,22 @@ export default defineContentScript({
 
     XMLHttpRequest.prototype.send = function (body?: Document | XMLHttpRequestBodyInit | null) {
       const url = urls.get(this);
-      if (url && matches(url)) {
-        if (typeof body === 'string') emit(body, 'request');
-        else if (body instanceof URLSearchParams) emit(body.toString(), 'request');
-        else emit('', 'request');
+      const endpoint = url ? category(url) : null;
+      if (endpoint) {
+        if (typeof body === 'string') emit(body, 'request', endpoint);
+        else if (body instanceof URLSearchParams) emit(body.toString(), 'request', endpoint);
+        else emit('', 'request', endpoint);
         this.addEventListener('loadend', () => {
           try {
-            if (this.status < 200 || this.status >= 300) return;
-            if (this.responseType !== '' && this.responseType !== 'text') return;
-            emit(this.responseText, 'response');
-          } catch { /* do not modify XHR result */ }
+            if (this.status < 200 || this.status >= 300 ||
+                (this.responseType !== '' && this.responseType !== 'text')) {
+              emit('', 'response', endpoint, this.status);
+              return;
+            }
+            emit(this.responseText, 'response', endpoint, this.status);
+          } catch {
+            emit('', 'response', endpoint, this.status || 0);
+          }
         }, { once: true });
       }
       return send.call(this, body);
