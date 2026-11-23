@@ -1,6 +1,7 @@
 import { browser } from 'wxt/browser';
 import { collectVisibleOffers } from '../lib/offers-dom';
 import { extractBootstrapOffers, extractJslogOffers } from '../lib/bootstrap-offers';
+import { matchesOfficialSkuCta, validSkuSelection, type SkuSelection } from '../lib/sku-selection';
 import { uniqueNetworkOffers, type NetworkOffer } from '../lib/network-offers';
 import {
   isCandidateMatch, isOfficialGoogleOneUrl, isPlanChoiceId,
@@ -108,6 +109,84 @@ export default defineContentScript({
     };
 
 
+
+    let lastSkuPreview: { selection: SkuSelection; element: HTMLElement; at: number } | null = null;
+
+    function findSkuCta(selection: SkuSelection): Found[] {
+      if (!isOfficialGoogleOneUrl(location.href)) return [];
+      const found: Found[] = [];
+      for (const node of Array.from(document.querySelectorAll<HTMLElement>('[jslog]')).slice(0, 400)) {
+        if (!safeAction(node)) continue;
+        const jslog = node.getAttribute('jslog') ?? '';
+        const label = (node.getAttribute('aria-label') ??
+          node.innerText ?? node.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 95);
+        if (!label || label.length > 90) continue;
+
+        // Only the exact DOM element with this SKU, NEVER a made-up checkout URL
+        // or a request assembled from captured billing data.
+        let parent: HTMLElement | null = node;
+        for (let depth = 0; depth < 6 && parent; depth++, parent = parent.parentElement) {
+          if (parent === document.body || parent === document.documentElement) break;
+          const text = (parent.innerText ?? parent.textContent ?? '').trim().replace(/\s+/g, ' ');
+          if (text.length > 1500) break;
+          if (matchesOfficialSkuCta(jslog, label, text, selection)) {
+            found.push({ element: node, label });
+            break;
+          }
+        }
+      }
+      return found;
+    }
+
+    function inspectSku(raw: { selection?: unknown; kind?: unknown }) {
+      if (!validSkuSelection(raw.selection)) {
+        return { status: 'invalid', message: 'SKU hoặc giá không hợp lệ. Không thực hiện yêu cầu.' };
+      }
+      const selection = raw.selection;
+      const matches = findSkuCta(selection);
+      if (raw.kind === 'G1_SKU_PREVIEW') {
+        lastSkuPreview = null;
+        if (!matches.length) {
+          return { status: 'not-found', message:
+            'SKU có trong dữ liệu nhưng không có nút đăng ký cùng giá trên trang hiện tại. Không thể mở checkout cho SKU này.' };
+        }
+        if (matches.length !== 1) {
+          return { status: 'ambiguous', message:
+            'Có nhiều nút cùng SKU/giá. Vui lòng thao tác trực tiếp trên website Google.' };
+        }
+        const match = matches[0]!;
+        lastSkuPreview = { selection, element: match.element, at: Date.now() };
+        match.element.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        match.element.style.outline = '3px solid #5b9aff';
+        match.element.style.outlineOffset = '3px';
+        return { status: 'ready', message:
+          'Đúng SKU ' + selection.productId + ' · ' + selection.expectedPrice +
+          '. Đã đánh dấu nút đăng ký. Xác nhận để Google One tự mở luồng checkout.' };
+      }
+      if (!lastSkuPreview || Date.now() - lastSkuPreview.at > 60_000 ||
+          lastSkuPreview.selection.productId !== selection.productId ||
+          lastSkuPreview.selection.expectedPrice !== selection.expectedPrice ||
+          lastSkuPreview.selection.basePlanId !== selection.basePlanId ||
+          lastSkuPreview.selection.billingPeriod !== selection.billingPeriod) {
+        return { status: 'expired', message: 'SKU hoặc trang đã thay đổi, hãy kiểm tra lại trước.' };
+      }
+      const match = matches.filter((candidate) => candidate.element === lastSkuPreview?.element);
+      if (matches.length !== 1 || match.length !== 1) {
+        lastSkuPreview = null;
+        return { status: 'changed', message: 'Nút đăng ký đã thay đổi, không thực hiện.' };
+      }
+      const target = match[0]!.element;
+      lastSkuPreview = null;
+      target.style.outline = '';
+      target.style.outlineOffset = '';
+      // Only invoke Google's currently visible entry CTA, not any final
+      // payment action. Google may reject enrollment or ignore synthetic clicks.
+      target.click();
+      return { status: 'clicked', message:
+        'Đã nhấn nút đăng ký gắn với SKU ' + selection.productId +
+        '. Kiểm tra cửa sổ checkout của Google để biết giá và khả năng đăng ký; chưa xác nhận mua thành công.' };
+    }
+
     // Detect visible plans automatically on page load and after Google SPA
     // changes. Only sanitized Offer fields, never raw page HTML, leave the tab.
     let lastFingerprint = '';
@@ -186,6 +265,10 @@ export default defineContentScript({
 
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (!message || typeof message !== 'object') return;
+      if (message.kind === 'G1_SKU_PREVIEW' || message.kind === 'G1_SKU_OPEN') {
+        sendResponse(inspectSku(message as { selection?: unknown; kind?: unknown }));
+        return;
+      }
       if (message.kind === 'G1_OFFICIAL_PLAN_PREVIEW' || message.kind === 'G1_OFFICIAL_PLAN_OPEN') {
         sendResponse(inspectAction(message as PlanMessage));
         return;
