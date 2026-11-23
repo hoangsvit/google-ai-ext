@@ -57,3 +57,23 @@ h2 { font-size: 12px; margin: 0; letter-spacing: .015em; }
 footer { margin-top: 18px; display: flex; flex-direction: column; gap: 7px; border-top: 1px solid #283855; padding-top: 12px; font-size: 10px; line-height: 1.6; color: #7f92ba; }
 footer a { color: #a0c2ff; text-decoration: none; }
 footer a:hover { text-decoration: underline; }
+
+
+.network { margin-top: 20px; padding: 13px; border: 1px solid #37527a; background: #101d35; border-radius: 12px; }
+.network .section-header { margin-bottom: 6px; }
+.network-tag { font-size: 8px; font-weight: 800; color: #9ad6ff; letter-spacing: .09em; }
+.network-explain { font-size: 10px; color: #9aaed1; line-height: 1.6; margin: 10px 0; }
+.network-actions { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.network-actions button { font-size: 10px; padding: 8px 11px; border-radius: 8px; border: 1px solid #405779; }
+.text-button { background: transparent; color: #a4b7d6; }
+.network-results { max-height: 220px; overflow: auto; scrollbar-width: thin; }
+.network-results .empty { padding: 13px; }
+.net-card { background: #1a2a49; border: 1px solid #3e537a; border-radius: 9px; padding: 11px; margin: 6px 0; }
+.net-card h3 { font-size: 12px; margin: 0 0 5px; line-height: 1.35; }
+.net-code { font-size: 10px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; color: #9cc5ff; overflow-wrap: anywhere; }
+.net-price { font-size: 17px; font-weight: 750; padding: 8px 0 2px; }
+.net-meta { font-size: 10px; color: #a6b9db; line-height: 1.6; }
+.har-section { margin-top: 13px; border-top: 1px solid #35486b; padding-top: 11px; }
+.har-section summary { color: #bcd1ff; font-size: 11px; font-weight: 700; cursor: pointer; }
+.har-section p, #har-status { display: block; font-size: 10px; line-height: 1.6; color: #90a3c7; }
+.har-section input { margin: 8px 0; width: 100%; font-size: 10px; color: #d6e1ff; }

@@ -39,6 +39,28 @@
         </div>
       </section>
 
+
+      <section class="network" aria-labelledby="network-heading">
+        <div class="section-header">
+          <h2 id="network-heading">Network Offer Inspector</h2>
+          <span class="network-tag">BETA · READ-ONLY</span>
+        </div>
+        <p class="network-explain">Đọc metadata có sẵn trong giao dịch mạng, không sửa SKU hoặc gửi yêu cầu mua hàng. Hãy tải lại Google One sau khi cài extension.</p>
+        <div class="network-actions">
+          <button id="network-refresh" class="secondary" type="button">Xem dữ liệu mạng</button>
+          <button id="network-clear" class="text-button" type="button">Xóa bộ nhớ</button>
+        </div>
+        <div id="network-results" class="network-results" aria-live="polite">
+          <div class="empty">Chưa ghi nhận dữ liệu mạng cho tab này.</div>
+        </div>
+        <details class="har-section">
+          <summary>Phân tích file HAR trên máy</summary>
+          <p>Chỉ trích xuất mã sản phẩm, gói cơ sở và giá. Không tải HAR lên máy chủ. File HAR có thể chứa cookie/token: đừng chia sẻ công khai.</p>
+          <input id="har-file" type="file" accept=".har,.json,application/json" />
+          <span id="har-status" role="status">Chưa chọn file</span>
+        </details>
+      </section>
+
       <details class="manual">
         <summary>Không quét được? Phân tích nội dung thủ công</summary>
         <label for="manual-input">Chỉ dán mô tả gói/giá, không dán thông tin cá nhân.</label>
