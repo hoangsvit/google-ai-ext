@@ -1,6 +1,6 @@
 import { analyzeOfferText, dedupeOffers, type Offer } from './offers';
 
-const PLAN_PATTERN = /(?:\b\d{1,3}\s*(?:TB|GB)\b|google\s*(?:ai\s*)?(?:ultra|pro|one))/i;
+const PLAN_PATTERN = /(?:\b\d{1,3}\s*(?:TB|GB)\b|google\s*(?:ai\s*)?(?:ultra|pro|plus|one))/i;
 
 /**
  * Extract summaries from visible plan cards, without reading cookies,
@@ -24,18 +24,25 @@ export function collectVisibleOffers(doc: Document): Offer[] {
   doc.querySelectorAll('article, [role="article"], section, li, [data-testid*="plan"], [class*="plan-card"], [class*="pricing-card"]')
     .forEach(add);
 
-  // Fallback for Google's evolving layout: read only compact groups around CTA buttons.
-  if (candidates.length === 0) {
-    doc.querySelectorAll('button, [role="button"]').forEach((button) => {
-      let parent = button.parentElement;
-      for (let depth = 0; depth < 4 && parent; depth++, parent = parent.parentElement) {
-        const text = (parent.innerText || '').replace(/\s+/g, ' ').trim();
-        if (text.length > 30 && text.length <= 850 && PLAN_PATTERN.test(text)) {
-          add(parent);
-          break;
-        }
+  // Google's actual Google One plan CTAs are frequently nested in plain divs
+  // with a jslog SKU attribute, rather than <button> or a semantic <section>.
+  // Always scan these, even if some generic cards were found above.
+  const elements = doc.querySelectorAll<HTMLElement>(
+    'button, [role="button"], [jslog]'
+  );
+  for (const node of Array.from(elements).slice(0, 250)) {
+    let ancestor: HTMLElement | null = node;
+    for (let depth = 0; depth < 8 && ancestor; depth++, ancestor = ancestor.parentElement) {
+      if (ancestor === doc.body) break;
+      const text = (ancestor.innerText || ancestor.textContent || '').replace(/\\s+/g, ' ').trim();
+      if (text.length > 1300) break;
+      // Keep the nearest compact group carrying a recognizable plan and price.
+      if (text.length >= 24 && PLAN_PATTERN.test(text) &&
+          /(?:₫|VND|USD|\\$|€|£)/i.test(text)) {
+        add(ancestor);
+        break;
       }
-    });
+    }
   }
 
   const parsed: Offer[] = [];

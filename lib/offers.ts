@@ -25,15 +25,18 @@ export function analyzeOfferText(raw: string, source: OfferSource = 'manual'): O
 
   const hasUltra = /\b(?:google\s*(?:ai\s*)?ultra|ai\s*ultra)\b/i.test(text);
   const hasPro = /\b(?:google\s*ai\s*pro|ai\s*pro)\b/i.test(text);
+  const hasPlus = /\b(?:google\s*ai\s*plus|ai\s*plus)\b/i.test(text);
   const hasGoogleOne = /\bgoogle\s*one\b/i.test(text);
   const storageMatch = text.match(/\b(\d{1,3})\s*(TB|GB)\b/i);
-  if (!storageMatch && !hasUltra && !hasPro && !hasGoogleOne) return null;
+  if (!storageMatch && !hasUltra && !hasPro && !hasPlus && !hasGoogleOne) return null;
 
   const plan = hasUltra
     ? 'Google AI Ultra'
     : hasPro
       ? 'Google AI Pro'
-      : 'Google One';
+      : hasPlus
+        ? 'Google AI Plus'
+        : 'Google One';
   const storage = storageMatch?.[1] && storageMatch?.[2]
     ? storageMatch[1] + ' ' + storageMatch[2].toUpperCase()
     : null;
