@@ -3,55 +3,111 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta name="theme-color" content="#0b1020"/>
-  <title>Google One — Live Offers</title>
+  <meta name="theme-color" content="#0c1425"/>
+  <title>ePlus Google One · SKU Explorer</title>
 </head>
 <body>
   <main class="app">
-    <div class="brand"><span class="brand-icon">G1</span><span>ePlus.DEV / GOOGLE ONE</span><span class="version">v0.2</span></div>
-    <header>
-      <p class="eyebrow">LIVE OFFER DETECTION</p>
-      <h1>Tự động nhận diện gói Google One</h1>
-      <p class="intro">Mở Google One là extension tự quan sát request và gói đang hiển thị. Không cần bấm Quét.</p>
-    </header>
-    <div id="live-state" class="live-state" role="status" aria-live="polite">
-      <span class="pulse" aria-hidden="true"></span><span id="connection">Đang kiểm tra tab...</span>
-    </div>
-    <p id="activity" class="activity">Đang chờ dữ liệu trang và RPC.</p>
-    <div class="actions">
-      <button id="open" class="primary" type="button">Mở Google One</button>
-      <button id="reload" class="secondary" type="button">Tải lại trang</button>
-    </div>
-    <section class="sku-trial-section" aria-labelledby="sku-trial-heading">
-      <div class="section-header">
-        <h2 id="sku-trial-heading">Danh sách SKU · Bấm Thử</h2>
-        <span id="sku-trial-count" class="counter">0</span>
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">G1</span>
+        <div class="brand-copy">
+          <span class="eyebrow">ePlus.DEV / GOOGLE ONE</span>
+          <h1>SKU Explorer</h1>
+        </div>
+        <span class="version">BETA</span>
       </div>
-      <p class="sku-trial-intro">Đã tổng hợp 9 SKU / 10 lựa chọn giá từ HTML và HAR. Ưu tiên SKU phát hiện trên tab, sau đó SKU từng xuất hiện trong Play Commerce. Bấm Thử chỉ mở checkout nếu Google có nút đăng ký tương ứng.</p>
-      <div id="sku-try-list" class="sku-trial-list">
+      <div class="live-state" id="live-state" role="status" aria-live="polite">
+        <span class="pulse" aria-hidden="true"></span>
+        <span id="connection">Đang kiểm tra Google One...</span>
+      </div>
+      <p id="activity" class="activity">Extension tự nhận diện gói khi trang tải.</p>
+      <div class="top-actions">
+        <button id="open" type="button" class="secondary">Mở Google One</button>
+        <button id="reload" type="button" class="text-button">Tải lại tab</button>
+      </div>
+    </header>
+
+    <section class="overview" aria-label="Tổng quan danh sách">
+      <div class="stat">
+        <span id="live-sku-count" class="stat-value">0</span>
+        <span class="stat-label">SKU phiên này</span>
+      </div>
+      <div class="stat">
+        <span id="commerce-sku-count" class="stat-value">4</span>
+        <span class="stat-label">Từng có Commerce</span>
+      </div>
+      <div class="stat">
+        <span id="sku-trial-count" class="stat-value">9</span>
+        <span class="stat-label">SKU đã biết</span>
+      </div>
+    </section>
+
+    <section class="trial-panel" aria-labelledby="trial-heading">
+      <div class="panel-heading">
+        <h2 id="trial-heading">Lần thử gần nhất</h2>
+        <span id="trial-state" class="status-neutral">Chưa thử</span>
+      </div>
+      <p id="trial-detail" role="status" aria-live="polite">
+        Chọn một SKU ở dưới và nhấn Thử để kiểm tra luồng đăng ký chính thức.
+      </p>
+    </section>
+
+    <section class="catalog-section" aria-labelledby="sku-trial-heading">
+      <div class="panel-heading">
+        <h2 id="sku-trial-heading">Danh sách SKU</h2>
+        <span class="counter-label" id="sku-result-count">10 lựa chọn</span>
+      </div>
+      <label class="search-label" for="sku-search">Tìm SKU hoặc tên gói</label>
+      <input id="sku-search" class="search-input" type="search"
+        autocomplete="off" spellcheck="false" placeholder="Tìm SKU, Pro, Ultra, base plan..."/>
+      <div class="filters" role="group" aria-label="Lọc theo bằng chứng">
+        <button type="button" class="filter-chip" data-sku-filter="all" aria-pressed="true">Tất cả</button>
+        <button type="button" class="filter-chip" data-sku-filter="live" aria-pressed="false">Phiên này</button>
+        <button type="button" class="filter-chip" data-sku-filter="commerce" aria-pressed="false">Có Commerce</button>
+        <button type="button" class="filter-chip" data-sku-filter="catalog" aria-pressed="false">HTML</button>
+      </div>
+      <p class="catalog-hint">SKU lịch sử vẫn được hiển thị. “Có Commerce” là bằng chứng từ HAR trước đây, không phải quyền đăng ký hiện tại.</p>
+      <div id="sku-try-list" class="sku-trial-list" aria-live="polite">
         <div class="empty">Đang tải danh sách SKU...</div>
       </div>
     </section>
-    <section class="result-section" aria-labelledby="rpc-title">
-      <div class="section-header"><h2 id="rpc-title">SKU từ HTML / request / response</h2><span id="rpc-count" class="counter">0</span></div>
-      <div id="network-results" class="results" aria-live="polite"><div class="empty">Chưa có dữ liệu RPC.</div></div>
-    </section>
-    <section class="result-section" aria-labelledby="dom-title">
-      <div class="section-header"><h2 id="dom-title">Gói hiển thị trên trang</h2><span id="dom-count" class="counter">0</span></div>
-      <div id="dom-results" class="results" aria-live="polite"><div class="empty">Chưa tìm thấy gói trên giao diện.</div></div>
-    </section>
-    <details class="fold">
-      <summary>Đọc file HAR cục bộ (nếu cần)</summary>
-      <p>Chỉ dùng khi cần kiểm tra một bản ghi đã lưu. File HAR có thể chứa dữ liệu phiên nhạy cảm, không chia sẻ công khai.</p>
-      <input id="har-file" type="file" accept=".har,.json,application/json"/>
-      <p id="har-status" class="hint" role="status">Chưa chọn HAR.</p>
-      <button id="view-live" class="secondary" type="button" hidden>Quay lại dữ liệu trực tiếp</button>
+
+    <details class="advanced">
+      <summary>Phân tích kỹ thuật &amp; HAR</summary>
+      <div class="advanced-body">
+        <section class="result-section" aria-labelledby="rpc-title">
+          <div class="panel-heading">
+            <h2 id="rpc-title">Dữ liệu SKU từ HTML / RPC</h2>
+            <span id="rpc-count" class="mini-counter">0</span>
+          </div>
+          <div id="network-results" class="results" aria-live="polite">
+            <div class="empty">Chưa có metadata.</div>
+          </div>
+        </section>
+        <section class="result-section" aria-labelledby="dom-title">
+          <div class="panel-heading">
+            <h2 id="dom-title">Gói hiển thị trên trang</h2>
+            <span id="dom-count" class="mini-counter">0</span>
+          </div>
+          <div id="dom-results" class="results" aria-live="polite">
+            <div class="empty">Chưa có thẻ gói.</div>
+          </div>
+        </section>
+        <div class="har-import">
+          <label for="har-file">Phân tích HAR cục bộ (không tải lên)</label>
+          <input id="har-file" type="file" accept=".har,.json,application/json"/>
+          <p id="har-status" class="hint" role="status">Chưa chọn file.</p>
+          <button id="view-live" class="secondary" type="button" hidden>Quay lại dữ liệu trực tiếp</button>
+        </div>
+        <button id="clear" class="text-button" type="button">Xóa dữ liệu tạm của tab</button>
+      </div>
     </details>
-    <div class="bottom">
-      <button id="clear" class="text-button" type="button">Xóa dữ liệu tạm của tab</button>
-      <span>Giá và điều kiện cuối cùng do Google xác nhận.</span>
+
+    <footer class="bottom">
+      <p>Thử chỉ kích hoạt nút gói có sẵn của Google. Không tự gửi SKU ẩn, không tự thanh toán. HTTP 200 không chứng minh đăng ký thành công.</p>
       <a href="https://github.com/hoangsvit/google-ai-ext" target="_blank" rel="noopener noreferrer">Source code</a>
-    </div>
+    </footer>
   </main>
   <script type="module" src="./main.ts"></script>
 </body>
