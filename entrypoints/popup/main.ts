@@ -4,6 +4,7 @@ import { assessOffers, type OfferStatus } from '../../lib/offer-assessment';
 import { compareBasePlans } from '../../lib/base-plan-comparison';
 import { isOfficialGoogleOneUrl, OFFICIAL_GOOGLE_AI_PLANS_URL } from '../../lib/official-google-one';
 import { buildTrySkuList } from '../../lib/sku-catalog';
+import { formatTrialStatus, type TrialState } from '../../lib/trial-observer';
 import type { Offer } from '../../lib/offers';
 import './style.css';
 
@@ -13,6 +14,7 @@ interface TabCapture {
   network: NetworkOffer[];
   dom: Offer[];
   updatedAt: number;
+  trial: TrialState | null;
 }
 
 const connection = document.querySelector<HTMLElement>('#connection')!;
@@ -32,6 +34,7 @@ const skuTrialCount = document.querySelector<HTMLElement>('#sku-trial-count')!;
 
 const empty: TabCapture = {
   connected: false, networkEvents: 0, network: [], dom: [], updatedAt: 0,
+  trial: null,
 };
 let activeId: number | null = null;
 let snapshot: TabCapture = empty;
@@ -170,6 +173,7 @@ async function loadLive() {
           network: Array.isArray(data.network) ? data.network.filter(isNetworkOffer) : [],
           dom: Array.isArray(data.dom) ? data.dom : [],
           updatedAt: data.updatedAt ?? 0,
+          trial: data.trial ?? null,
         };
       } else snapshot = empty;
     } catch { snapshot = empty; }
@@ -222,6 +226,7 @@ browser.storage.onChanged.addListener((changes, areaName) => {
       network: Array.isArray(state.network) ? state.network.filter(isNetworkOffer) : [],
       dom: Array.isArray(state.dom) ? state.dom : [],
       updatedAt: state.updatedAt ?? 0,
+      trial: state.trial ?? null,
     };
   }
   renderLive();
@@ -310,7 +315,12 @@ function renderTrySkuList() {
     const button = element('button', 'primary try-sku-button', 'Thử');
     button.type = 'button';
     const resultKey = [choice.productId, choice.expectedPrice, choice.billingPeriod ?? ''].join('|');
-    const result = element('p', 'try-sku-result', skuTryResults.get(resultKey) ?? '');
+    const observed = snapshot.trial &&
+      snapshot.trial.productId === choice.productId &&
+      snapshot.trial.expectedPrice === choice.expectedPrice
+      ? formatTrialStatus(snapshot.trial) : null;
+    const result = element('p', 'try-sku-result',
+      observed ?? skuTryResults.get(resultKey) ?? '');
     const setResult = (message: string) => {
       skuTryResults.set(resultKey, message);
       result.textContent = message;
@@ -335,12 +345,34 @@ function renderTrySkuList() {
             basePlanId: choice.basePlanId,
             billingPeriod: choice.billingPeriod,
           };
-          const reply: unknown = await browser.tabs.sendMessage(tabId, {
-            kind: 'G1_SKU_TRY', selection,
+          const started: unknown = await browser.runtime.sendMessage({
+            kind: 'G1_TRIAL_START', tabId, productId: choice.productId,
+            expectedPrice: choice.expectedPrice,
           });
+          if (!started || typeof started !== 'object' || !('ok' in started) ||
+              started.ok !== true) {
+            setResult('Không khởi tạo được theo dõi request cho SKU này.');
+            return;
+          }
+          let clicked = false;
+          let reply: unknown = null;
+          try {
+            reply = await browser.tabs.sendMessage(tabId, {
+              kind: 'G1_SKU_TRY', selection,
+            });
+            clicked = !!reply && typeof reply === 'object' &&
+              'status' in reply && reply.status === 'clicked';
+          } finally {
+            await browser.runtime.sendMessage({
+              kind: 'G1_TRIAL_FINISH', tabId, clicked,
+            }).catch(() => {});
+          }
           const message = reply && typeof reply === 'object' && 'message' in reply &&
             typeof reply.message === 'string' ? reply.message : null;
           setResult(message ?? 'Chưa xác định được kết quả. Xem tab Google One.');
+          // Reading again picks up endpoint + HTTP status even when the popup
+          // did not observe an intermediate storage change.
+          await loadLive();
         } catch {
           setResult('Không kết nối được Google One. Tải lại trang rồi thử lại.');
         } finally {
