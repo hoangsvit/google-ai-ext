@@ -29,6 +29,7 @@ const offerEvidence = document.querySelector<HTMLElement>('#offer-evidence')!;
 const demoOffer = document.querySelector<HTMLButtonElement>('#demo-offer')!;
 const demoPlan = document.querySelector<HTMLSelectElement>('#demo-plan')!;
 const demoNote = document.querySelector<HTMLElement>('#demo-note')!;
+const openRewriteLab = document.querySelector<HTMLButtonElement>('#open-rewrite-lab')!;
 
 const kindLabels: Record<OfferKind, string> = {
   'free-trial': 'Dùng thử miễn phí',
@@ -254,6 +255,10 @@ harFile.addEventListener('change', () => {
       harStatus.textContent = 'File HAR/JSON không hợp lệ.';
     }
   })();
+});
+
+openRewriteLab.addEventListener('click', () => {
+  void browser.tabs.create({ url: browser.runtime.getURL('/response-lab.html') });
 });
 
 // Network data is cached only in a temporary background service worker.

@@ -58,6 +58,15 @@ The sample menu also offers *AI Pro 5 TB (489k vs 122k VND base plans)*, *AI Pro
 
 The DEMO card is visually marked, cannot be purchased, is never inserted into the actual page's network responses, does not alter SKU/checkout, and is not stored or transmitted. Clicking **Xem dữ liệu mạng** returns to actual captured data.
 
+
+## Isolated HTTP response rewrite lab
+
+In **Network Offer Inspector**, click **Mở Response Rewrite Lab** to open an extension-owned, local-only test page. The page simulates an original JSON HTTP Response from the reserved non-routable endpoint `https://response-lab.invalid/commerce/catalog` and, with the toggle enabled, passes it through a Fetch wrapper that **actually creates and returns a replacement Response object** containing the chosen fictional offer.
+
+The lab shows the original and rewritten bodies side by side, and supports AI Pro, AI Plus, AI Pro + YouTube Premium, and Ultra 3-month synthetic examples. Turn the toggle off to compare pass-through behavior.
+
+**Scope and limits:** The destination uses the reserved `.invalid` domain; no real network request or Google billing interaction takes place. A strict endpoint guard prevents rewriting `one.google.com`, `tokenized.play.google.com` and even the synthetic checkout endpoint. It never changes app account entitlements, SKU, receipts or payment prices. Local-only demonstration does not establish the Shadowrocket method can work on Chrome against Google billing.
+
 ## Offer assessment based on real pricing phases
 
 The inspector now categorizes each product into:
