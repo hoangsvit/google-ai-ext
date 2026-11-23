@@ -1,5 +1,7 @@
 import { browser } from 'wxt/browser';
 import { collectVisibleOffers } from '../lib/offers-dom';
+import { extractBootstrapOffers, extractJslogOffers } from '../lib/bootstrap-offers';
+import { uniqueNetworkOffers, type NetworkOffer } from '../lib/network-offers';
 import {
   isCandidateMatch, isOfficialGoogleOneUrl, isPlanChoiceId,
   type PlanChoiceId,
@@ -109,6 +111,44 @@ export default defineContentScript({
     // Detect visible plans automatically on page load and after Google SPA
     // changes. Only sanitized Offer fields, never raw page HTML, leave the tab.
     let lastFingerprint = '';
+    let lastBootstrapFingerprint = '';
+    // Scan each Google bootstrap script once, not on every SPA DOM mutation.
+    const bootstrapCache = new WeakMap<HTMLScriptElement, NetworkOffer[]>();
+
+    function captureEmbedded() {
+      try {
+        const rows: NetworkOffer[] = [];
+        const scripts = Array.from(document.querySelectorAll<HTMLScriptElement>(
+          'script:not([src])'
+        )).slice(0, 80);
+        for (const script of scripts) {
+          let extracted = bootstrapCache.get(script);
+          if (!extracted) {
+            const content = script.textContent ?? '';
+            extracted = content.includes('AF_initDataCallback')
+              ? extractBootstrapOffers(content) : [];
+            bootstrapCache.set(script, extracted);
+          }
+          rows.push(...extracted);
+        }
+
+        // Prefer structured bootstrap metadata; jslog is a fallback for
+        // SKUs missing from the embedded catalog.
+        const detailed = new Set(rows.filter((row) =>
+          row.productId && row.basePlanId && row.price
+        ).map((row) => row.productId));
+        rows.push(...extractJslogOffers(document).filter((row) =>
+          !detailed.has(row.productId)));
+        const safe = uniqueNetworkOffers(rows).slice(0, 40);
+        const fingerprint = JSON.stringify(safe);
+        if (fingerprint === lastBootstrapFingerprint) return;
+        lastBootstrapFingerprint = fingerprint;
+        void browser.runtime.sendMessage({
+          kind: 'G1_BOOTSTRAP_CAPTURE', offers: safe,
+        }).catch(() => { lastBootstrapFingerprint = ''; });
+      } catch { /* Local inspection must never interrupt Google's page. */ }
+    }
+
     let captureTimer: ReturnType<typeof setTimeout> | undefined;
     function captureVisible() {
       try {
@@ -122,14 +162,18 @@ export default defineContentScript({
         });
       } catch { /* Passive reader must never break the page. */ }
     }
+    function captureAll() {
+      captureVisible();
+      captureEmbedded();
+    }
     function scheduleCapture() {
       if (captureTimer !== undefined) clearTimeout(captureTimer);
       captureTimer = setTimeout(() => {
         captureTimer = undefined;
-        captureVisible();
+        captureAll();
       }, 300);
     }
-    captureVisible();
+    captureAll();
     const observer = new MutationObserver(scheduleCapture);
     if (document.documentElement) {
       observer.observe(document.documentElement, {
@@ -148,7 +192,8 @@ export default defineContentScript({
       }
       if (message.kind === 'G1_DOM_REFRESH') {
         lastFingerprint = '';
-        captureVisible();
+        lastBootstrapFingerprint = '';
+        captureAll();
         sendResponse({ ok: true });
       }
     });
