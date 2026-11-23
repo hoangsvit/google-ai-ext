@@ -1,6 +1,6 @@
 import {
   extractNetworkOffers, uniqueNetworkOffers, type NetworkOffer,
-} from './network-offers';
+} from './network-offers.ts';
 
 /**
  * Google One may ship its catalog in AF_initDataCallback() inside the initial
