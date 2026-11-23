@@ -20,6 +20,7 @@ export default defineContentScript({
         basePlanId: offer.basePlanId, offerId: offer.offerId,
         price: offer.price, currency: offer.currency,
         billingPeriod: offer.billingPeriod, source: offer.source,
+        phaseIndex: offer.phaseIndex ?? null, priceMicros: offer.priceMicros ?? null,
       }));
       if (offers.length) {
         void browser.runtime.sendMessage({ kind: 'G1_NETWORK_CAPTURE', offers })
