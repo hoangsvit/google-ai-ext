@@ -37,8 +37,7 @@ export function analyzeOfferText(raw: string, source: OfferSource = 'manual'): O
   const storage = storageMatch ? storageMatch[1] + ' ' + storageMatch[2].toUpperCase() : null;
 
   const money = text.match(/(?:US\$|A\$|CA\$|\$|€|£)\s*\d[\d,.]*/i)
-    ?? text.match(/\b\d[\d.,\s]{0,14}\s*(?:₫|VND|đồng)\b/i)
-    ?? text.match(/\b\d[\d.,\s]{0,14}\s*đ(?=\s|\/|$)/i);
+    ?? text.match(/\b\d[\d.,\s]{0,14}\s*(?:₫|VND|đồng|đ)(?=\s|\/|$)/i);
   const price = money ? clean(money[0]) : null;
 
   const periodMatch = text.match(/\b\d{1,2}\s*(?:tháng|months?|mos?\.?|năm|years?)\b/i);
@@ -47,7 +46,7 @@ export function analyzeOfferText(raw: string, source: OfferSource = 'manual'): O
     ?? text.match(/\b(\d{1,3})\s*%\s*(?:off|discount|giảm|saving)/i);
   const discount = percentMatch ? percentMatch[1] + '%' : null;
 
-  const freeWords = /(?:miễn\s*phí|dùng\s*thử\s*miễn\s*phí|free\s*(?:trial|for|months?|plan)|no\s*charge|0\s*(?:₫|VND|đồng))\b/i.test(text);
+  const freeWords = /(?:miễn\s*phí|dùng\s*thử\s*miễn\s*phí|free\s*(?:trial|for|months?|plan)|no\s*charge)\b/i.test(text)\n    || /\b0\s*(?:₫|VND|đồng)(?=\s|\/|$)/i.test(text);
   const promoWords = /(?:ưu\s*đãi|khuyến\s*mãi|giảm\s*giá|discount|introductory|promotion|promo|special\s*offer|first\s+\d+\s+months?)/i.test(text);
   const kind: OfferKind = freeWords
     ? 'free-trial'
