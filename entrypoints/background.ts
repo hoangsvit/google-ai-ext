@@ -1,6 +1,8 @@
 import { browser } from 'wxt/browser';
 import { isNetworkOffer, uniqueNetworkOffers, type NetworkOffer } from '../lib/network-offers';
 import type { Offer } from '../lib/offers';
+import { finishTrial, isSafeRpc, observeTrialRpc, startTrial, TRIAL_WINDOW_MS,
+  type TrialState } from '../lib/trial-observer';
 
 export interface TabCapture {
   connected: boolean;
@@ -8,9 +10,11 @@ export interface TabCapture {
   network: NetworkOffer[];
   dom: Offer[];
   updatedAt: number;
+  trial: TrialState | null;
 }
 const emptyCapture = (): TabCapture => ({
   connected: false, networkEvents: 0, network: [], dom: [], updatedAt: 0,
+  trial: null,
 });
 const tabKey = (id: number) => 'g1-tab-' + id;
 const MAX_CAPTURED = 40;
@@ -53,7 +57,8 @@ export default defineBackground(() => {
   const read = async (tabId: number): Promise<TabCapture> => {
     const stored = await browser.storage.session.get(tabKey(tabId));
     const value = stored[tabKey(tabId)] as TabCapture | undefined;
-    return value && typeof value === 'object' ? value : emptyCapture();
+    return value && typeof value === 'object'
+      ? { ...value, trial: value.trial ?? null } : emptyCapture();
   };
   const update = (tabId: number, patch: (previous: TabCapture) => TabCapture): Promise<void> => {
     const previousTask = pending.get(tabId) ?? Promise.resolve();
@@ -62,10 +67,10 @@ export default defineBackground(() => {
       const next = patch(original);
       if (JSON.stringify({
         connected: original.connected, networkEvents: original.networkEvents,
-        network: original.network, dom: original.dom,
+        network: original.network, dom: original.dom, trial: original.trial,
       }) === JSON.stringify({
         connected: next.connected, networkEvents: next.networkEvents,
-        network: next.network, dom: next.dom,
+        network: next.network, dom: next.dom, trial: next.trial,
       })) return;
       await browser.storage.session.set({ [tabKey(tabId)]: next });
       const count = Math.max(new Set(next.network.map((item) => item.productId)).size, next.dom.length);
@@ -84,14 +89,27 @@ export default defineBackground(() => {
   };
   const clear = async (tabId: number): Promise<void> => {
     await (pending.get(tabId) ?? Promise.resolve()).catch(() => {});
-    await browser.storage.session.remove(tabKey(tabId));
+    const previous = await read(tabId);
+    // A normal page navigation can follow a valid checkout entry click.
+    // Preserve its short-lived diagnostics while clearing stale SKU metadata.
+    if (previous.trial && Date.now() - previous.trial.startAt <= TRIAL_WINDOW_MS) {
+      await browser.storage.session.set({
+        [tabKey(tabId)]: { ...emptyCapture(), trial: previous.trial },
+      });
+    } else {
+      await browser.storage.session.remove(tabKey(tabId));
+    }
     try { await browser.action.setBadgeText({ tabId, text: '' }); }
     catch { /* Tab closed. */ }
   };
 
   browser.runtime.onMessage.addListener((raw: unknown, sender) => {
     if (!raw || typeof raw !== 'object') return;
-    const message = raw as { kind?: string; offers?: unknown; tabId?: number; activity?: boolean };
+    const message = raw as {
+      kind?: string; offers?: unknown; tabId?: number; activity?: boolean;
+      rpc?: unknown; productId?: unknown; expectedPrice?: unknown;
+      clicked?: unknown;
+    };
     if (message.kind === 'G1_CAPTURE_GET' && Number.isInteger(message.tabId) &&
         sender.tab === undefined && message.tabId! >= 0) {
       return read(message.tabId!).then((state) => ({ state }));
@@ -100,6 +118,29 @@ export default defineBackground(() => {
         sender.tab === undefined && message.tabId! >= 0) {
       return clear(message.tabId!).then(() => ({ ok: true }));
     }
+    // Only the extension's popup can start/finish a trial. This is a passive
+    // observation window, not a billing request.
+    if (message.kind === 'G1_TRIAL_START' && Number.isInteger(message.tabId) &&
+        sender.tab === undefined && message.tabId! >= 0) {
+      const state = startTrial(
+        typeof message.productId === 'string' ? message.productId : '',
+        typeof message.expectedPrice === 'string' ? message.expectedPrice : '',
+        Date.now(),
+      );
+      if (!state) return Promise.resolve({ ok: false });
+      return update(message.tabId!, (previous) => ({
+        ...previous, trial: state, updatedAt: Date.now(),
+      })).then(() => ({ ok: true }));
+    }
+    if (message.kind === 'G1_TRIAL_FINISH' && Number.isInteger(message.tabId) &&
+        sender.tab === undefined && message.tabId! >= 0) {
+      return update(message.tabId!, (previous) => ({
+        ...previous,
+        trial: previous.trial ? finishTrial(previous.trial, message.clicked === true, Date.now()) : null,
+        updatedAt: Date.now(),
+      })).then(() => ({ ok: true }));
+    }
+
     const tabId = sender.tab?.id;
     if (tabId === undefined || !isGoogleSource(sender.url)) return;
 
@@ -124,6 +165,9 @@ export default defineBackground(() => {
         ...previous, connected: true,
         networkEvents: Math.min(previous.networkEvents + 1, 9999),
         network: uniqueNetworkOffers([...found, ...previous.network]).slice(0, MAX_CAPTURED),
+        trial: isSafeRpc(message.rpc) ? observeTrialRpc(
+          previous.trial, message.rpc, found.map((offer) => offer.productId), Date.now(),
+        ) : previous.trial,
         updatedAt: Date.now(),
       })).then(() => ({ ok: true }));
     }
