@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 import { collectVisibleOffers } from '../lib/offers-dom';
-import { extractBootstrapOffers, extractJslogOffers } from '../lib/bootstrap-offers';
+import { extractBootstrapOffers, extractJslogOffers, skuFromJslog } from '../lib/bootstrap-offers';
 import { matchesOfficialSkuCta, validSkuSelection, type SkuSelection } from '../lib/sku-selection';
 import { uniqueNetworkOffers, type NetworkOffer } from '../lib/network-offers';
 import {
@@ -212,7 +212,18 @@ export default defineContentScript({
     let lastFingerprint = '';
     let lastBootstrapFingerprint = '';
     // Scan each Google bootstrap script once, not on every SPA DOM mutation.
-    const bootstrapCache = new WeakMap<HTMLScriptElement, NetworkOffer[]>();
+    const bootstrapCache = new WeakMap<HTMLScriptElement, { size: number; rows: NetworkOffer[] }>();
+    let latestEmbedded: NetworkOffer[] = [];
+
+    const currentVisibleSkuIds = (): string[] => {
+      const ids = new Set<string>();
+      for (const node of Array.from(document.querySelectorAll<HTMLElement>('[jslog]')).slice(0, 1000)) {
+        if (!isVisible(node)) continue;
+        const sku = skuFromJslog(node.getAttribute('jslog') ?? '');
+        if (sku) ids.add(sku);
+      }
+      return [...ids].slice(0, 40);
+    };
 
     function captureEmbedded() {
       try {
@@ -221,14 +232,17 @@ export default defineContentScript({
           'script:not([src])'
         )).slice(0, 80);
         for (const script of scripts) {
-          let extracted = bootstrapCache.get(script);
-          if (!extracted) {
-            const content = script.textContent ?? '';
-            extracted = content.includes('AF_initDataCallback')
+          const content = script.textContent ?? '';
+          let cached = bootstrapCache.get(script);
+          // Pages can fill an inline script node after the first scan. Empty
+          // bootstrap results must not be cached forever.
+          if (!cached || cached.size !== content.length) {
+            const extracted = content.includes('AF_initDataCallback')
               ? extractBootstrapOffers(content) : [];
-            bootstrapCache.set(script, extracted);
+            cached = { size: content.length, rows: extracted };
+            bootstrapCache.set(script, cached);
           }
-          rows.push(...extracted);
+          rows.push(...cached.rows);
         }
 
         // Prefer structured bootstrap metadata; jslog is a fallback for
@@ -239,6 +253,7 @@ export default defineContentScript({
         rows.push(...extractJslogOffers(document).filter((row) =>
           !detailed.has(row.productId)));
         const safe = uniqueNetworkOffers(rows).slice(0, 40);
+        latestEmbedded = safe;
         const fingerprint = JSON.stringify(safe);
         if (fingerprint === lastBootstrapFingerprint) return;
         lastBootstrapFingerprint = fingerprint;
@@ -291,6 +306,19 @@ export default defineContentScript({
       }
       if (message.kind === 'G1_OFFICIAL_PLAN_PREVIEW' || message.kind === 'G1_OFFICIAL_PLAN_OPEN') {
         sendResponse(inspectAction(message as PlanMessage));
+        return;
+      }
+      if (message.kind === 'G1_PAGE_SNAPSHOT') {
+        // Synchronously return a fresh sanitized snapshot to the popup.
+        // This avoids relying solely on background storage updates, which
+        // can lag or be reset during Google One navigation.
+        captureAll();
+        sendResponse({
+          kind: 'G1_PAGE_SNAPSHOT_RESULT',
+          offers: latestEmbedded,
+          visibleSkus: currentVisibleSkuIds(),
+          dom: collectVisibleOffers(document),
+        });
         return;
       }
       if (message.kind === 'G1_DOM_REFRESH') {
