@@ -8,7 +8,7 @@ A lightweight **WXT + TypeScript** extension for Chrome and Edge (Manifest V3), 
 
 - Popup in Vietnamese with scan and open-Google-One actions.
 - Read-only DOM content script for `https://one.google.com/*`.
-- **Network Offer Inspector (beta)** observes eligible commerce request/response bodies on `one.google.com` and `tokenized.play.google.com` and extracts only whitelisted product metadata.
+- **Network Offer Inspector (beta)** observes eligible commerce request/response bodies on `one.google.com` and `tokenized.play.google.com`, extracts only whitelisted product metadata and compares introductory pricing phases.
 - Local **HAR import** for inspecting exported Google One sessions without uploading the file.
 - Local classification: free trial, promotional price, regular paid price, unknown.
 - Manual text-analysis fallback when Google changes the page structure.
@@ -35,9 +35,10 @@ To install locally: run `npm run build`, then open `chrome://extensions` (or `ed
 1. Sign in to Google One in your normal browser session and open [one.google.com/ai](https://one.google.com/ai).
 2. Wait for the offers to load, then click the extension icon → **Quét tab Google One**.
 3. For network data, **reload the page after enabling the extension**, browse plan details normally, then click **Xem dữ liệu mạng**. An optional Google Play checkout sheet may appear during normal navigation; the extension never opens one by itself.
-4. Alternatively open **Phân tích file HAR trên máy** to select a local, privately held Chrome DevTools HAR export. Only metadata fields are displayed; raw data is not persisted or uploaded.
-5. If the page layout is unsupported, paste **only the non-sensitive plan description** into the manual parser.
-6. Check the **official checkout** for actual currency, price, eligibility, renewal terms, and taxes. Do not rely on detected text to make a purchasing decision.
+4. Check the offer classification. A discount is only inferred when multiple pricing phases show an explicit lower introductory price. An Offer ID by itself does not confirm a discount.
+5. Alternatively open **Phân tích file HAR trên máy** to select a local, privately held Chrome DevTools HAR export. Only metadata fields are displayed; raw data is not persisted or uploaded.
+6. If the page layout is unsupported, paste **only the non-sensitive plan description** into the manual parser.
+7. Check the **official checkout** for actual currency, price, eligibility, renewal terms, and taxes. Do not rely on detected text to make a purchasing decision.
 
 ## Privacy and permissions
 
@@ -48,6 +49,30 @@ To install locally: run `npm run build`, then open `chrome://extensions` (or `ed
 - **No raw HTML, cookie, account email, offer-token, or checkout token** is sent to the popup, disk, or an external server. However, HAR exports themselves may contain such sensitive data: never upload or share them publicly.
 - Page scripts could spoof the window-message bridge. Treat all displayed metadata as *untrusted diagnostic hints*, not authoritative billing details.
 - The `collectVisibleOffers` code only checks compact, visible plan containers and returns parsed fields.
+
+## Offer assessment based on real pricing phases
+
+The inspector now categorizes each product into:
+
+- **Standard plan:** normal billed price and no separate promotional pricing phase was observed.
+- **Free trial:** a zero-cost introductory phase precedes a paid phase.
+- **Introductory discount:** a lower first phase precedes a higher subsequent phase.
+- **Offer candidate:** an `offerId` is present, but the data does not prove a reduced price.
+- **Unknown:** insufficient structured metadata to determine pricing.
+
+A **Google One checkout remains the final authority** on eligibility, taxes, billing schedule, and whether an offer can be purchased. The extension never substitutes a SKU, constructs a signed checkout payload, or silently clicks Subscribe.
+
+### Findings from the latest user-provided HAR (November 23, 2026)
+
+The sanitized structural test fixture corresponds to an observed `SubscriptionsManagementUi` request and `PlayCommerceAcquireUi` checkout sequence:
+
+| Product | Base plan | Price displayed in product metadata | Billing period | Detected promotional offer |
+|---|---|---|---|---|
+| `g1.20tb.v2` (Google AI Ultra 20 TB) | `p1m` | 2.250.000 ₫ | `P1M` | None in captured data |
+
+The recording does **not** show the iOS `90p` or `75p` SKU variants. Absence from a HAR is not proof the Google account has no other eligible offers. Checkout may add taxes or different payment terms.
+
+**Privacy:** no original HAR, cookies, tokens, account identifiers, or transaction payloads are committed to this repository. Tests use manually constructed synthetic records with the same relevant shape.
 
 ## Known limitations
 
@@ -65,6 +90,7 @@ entrypoints/google-network-main.content.ts MAIN-world passive request/response o
 entrypoints/google-network-bridge.content.ts Whitelisted bridge to extension context
 entrypoints/background.ts                 Temporary per-tab network summary buffer
 lib/network-offers.ts                     Bounded Google commerce & HAR metadata parser
+lib/offer-assessment.ts                    Price-phase classification; no eligibility claims
 entrypoints/popup/            Accessible extension popup
 lib/offers.ts                 Pure plan text classifier
 lib/offers-dom.ts             Visible DOM card discovery
