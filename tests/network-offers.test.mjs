@@ -47,6 +47,7 @@ test('extracts structured subscription metadata from nested request safely', () 
     productId: 'g1.20tb.v2', plan: 'Google AI Ultra (20 TB) (Google One)',
     basePlanId: 'p1m', offerId: null,
     price: '2.250.000 ₫', currency: 'VND', billingPeriod: 'P1M', source: 'request',
+    phaseIndex: 0, priceMicros: '2250000000000',
   });
 });
 
