@@ -132,3 +132,29 @@ tests/                        Offline unit tests
 ```
 
 PRs welcome. This independent project is not affiliated with Google or Apple.
+
+
+## Open the real Google One plan flow (user-approved)
+
+The **Mở gói trên Google One thật** section is the only workflow that may
+trigger a real Google request through the webpage. Click **Mở Google One**
+to open the verified official plans page, then return to the popup and:
+
+1. Choose a plan or a precise price seen in your HAR (for example AI Pro 122.000 ₫).
+2. Click **Tìm gói trên trang**. The extension searches for exactly one *visible*
+   official introductory CTA for the requested plan, checking the requested
+   price against the same plan card. No match means no automated action.
+3. Check the highlighted Google One button, then click **Mở gói qua Google**.
+   This clicks that existing Google One plan-entry button **once**, letting
+   Google's own page initiate its normal, authenticated request.
+4. Review the actual Google One/Google Play checkout, taxes, offer eligibility,
+   recurring price and subscription terms. The extension never confirms purchase.
+
+**Important limitations:** This is an official UI interaction, **not** a custom
+Google billing API or a reconstructed checkout POST. It cannot select a hidden
+\`basePlanId\` or promo SKU from a HAR if Google does not expose it as a real
+selectable offer in the page. Browser-generated clicks may be blocked by the
+site; if no unique matching button is found, choose the plan on Google One
+yourself. The extension never replays credentials, modifies billing responses,
+or sends fictional DEMO offers to Google.
+

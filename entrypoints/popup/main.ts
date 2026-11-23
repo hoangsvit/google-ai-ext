@@ -4,6 +4,7 @@ import { extractHarNetworkOffers, isNetworkOffer, uniqueNetworkOffers, type Netw
 import { assessOffers, summarizeAssessments, type OfferStatus } from '../../lib/offer-assessment';
 import { createDemoOffer, DEMO_LABEL, type DemoVariant } from '../../lib/demo-offer';
 import { compareBasePlans } from '../../lib/base-plan-comparison';
+import { isOfficialGoogleOneUrl, isPlanChoiceId, OFFICIAL_GOOGLE_AI_PLANS_URL, type PlanChoiceId } from '../../lib/official-google-one';
 import './style.css';
 
 type ScanReply = {
@@ -30,6 +31,12 @@ const demoOffer = document.querySelector<HTMLButtonElement>('#demo-offer')!;
 const demoPlan = document.querySelector<HTMLSelectElement>('#demo-plan')!;
 const demoNote = document.querySelector<HTMLElement>('#demo-note')!;
 const openRewriteLab = document.querySelector<HTMLButtonElement>('#open-rewrite-lab')!;
+const officialChoice = document.querySelector<HTMLSelectElement>('#official-choice')!;
+const officialSite = document.querySelector<HTMLButtonElement>('#official-site')!;
+const officialPreview = document.querySelector<HTMLButtonElement>('#official-preview')!;
+const officialLaunch = document.querySelector<HTMLButtonElement>('#official-launch')!;
+const officialStatus = document.querySelector<HTMLElement>('#official-status')!;
+let approvedPreview: { choice: PlanChoiceId; tabId: number } | null = null;
 
 const kindLabels: Record<OfferKind, string> = {
   'free-trial': 'Dùng thử miễn phí',
@@ -259,6 +266,90 @@ harFile.addEventListener('change', () => {
 
 openRewriteLab.addEventListener('click', () => {
   void browser.tabs.create({ url: browser.runtime.getURL('/response-lab.html') });
+});
+
+
+function resetOfficialPreview(): void {
+  approvedPreview = null;
+  officialLaunch.disabled = true;
+}
+
+async function activeOfficialTab(): Promise<number | null> {
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  return tab?.id && isOfficialGoogleOneUrl(tab.url) ? tab.id : null;
+}
+
+officialChoice.addEventListener('change', () => {
+  resetOfficialPreview();
+  officialStatus.textContent = 'Đã đổi gói. Bấm Tìm gói trên trang để kiểm tra với Google.';
+});
+
+officialSite.addEventListener('click', () => {
+  resetOfficialPreview();
+  officialStatus.textContent = 'Đã mở trang gói chính thức. Chọn tab đó và mở lại extension để tiếp tục.';
+  void browser.tabs.create({ url: OFFICIAL_GOOGLE_AI_PLANS_URL }).catch(() => {
+    officialStatus.textContent = 'Không mở được trang Google One.';
+  });
+});
+
+officialPreview.addEventListener('click', () => {
+  void (async () => {
+    resetOfficialPreview();
+    officialPreview.disabled = true;
+    try {
+      const choice = officialChoice.value;
+      if (!isPlanChoiceId(choice)) throw new Error('Gói không hợp lệ.');
+      const tabId = await activeOfficialTab();
+      if (tabId === null) {
+        officialStatus.textContent = 'Bạn cần đang ở tab https://one.google.com. Bấm Mở Google One rồi thử lại.';
+        return;
+      }
+      const reply: unknown = await browser.tabs.sendMessage(tabId, {
+        kind: 'G1_OFFICIAL_PLAN_PREVIEW', choice,
+      });
+      if (!reply || typeof reply !== 'object' || !('status' in reply)) {
+        throw new Error('Không xác nhận được gói trên website.');
+      }
+      const result = reply as { status: string; message?: string };
+      officialStatus.textContent = result.message ?? 'Không tìm thấy gói.';
+      if (result.status === 'ready') {
+        approvedPreview = { choice, tabId };
+        officialLaunch.disabled = false;
+      }
+    } catch {
+      officialStatus.textContent =
+        'Không tìm được nút chọn gói. Hãy tải lại Google One và thử lại, hoặc chọn thủ công trên website.';
+    } finally {
+      officialPreview.disabled = false;
+    }
+  })();
+});
+
+officialLaunch.addEventListener('click', () => {
+  void (async () => {
+    const preview = approvedPreview;
+    resetOfficialPreview();
+    if (!preview) return;
+    const tabId = await activeOfficialTab();
+    if (tabId !== preview.tabId || officialChoice.value !== preview.choice) {
+      officialStatus.textContent = 'Tab hoặc gói đã đổi; vui lòng tìm lại trước khi mở.';
+      return;
+    }
+    try {
+      const reply: unknown = await browser.tabs.sendMessage(tabId, {
+        kind: 'G1_OFFICIAL_PLAN_OPEN', choice: preview.choice,
+      });
+      if (!reply || typeof reply !== 'object' || !('status' in reply)) {
+        officialStatus.textContent = 'Trang đã thay đổi, hãy kiểm tra trực tiếp trên tab Google One.';
+        return;
+      }
+      const result = reply as { status: string; message?: string };
+      officialStatus.textContent = result.message ??
+        'Không thể xác nhận đã mở gói. Hãy thao tác trực tiếp trên Google One.';
+    } catch {
+      officialStatus.textContent = 'Google One có thể đang chuyển trang. Hãy kiểm tra giao diện chính thức.';
+    }
+  })();
 });
 
 // Network data is cached only in a temporary background service worker.

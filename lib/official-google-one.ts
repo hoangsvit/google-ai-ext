@@ -64,13 +64,10 @@ export function matchesPlanText(text: string, kind: PlanKind): boolean {
  */
 export function matchesObservedPrice(text: string, expectedDigits: string | null): boolean {
   if (!expectedDigits) return true;
-  const value = normalize(text);
   if (!/^\d{6,9}$/.test(expectedDigits)) return false;
-  const len = expectedDigits.length - 3;
-  const beginning = expectedDigits.slice(0, len);
-  const tail = expectedDigits.slice(len);
-  const pattern = new RegExp('(?:^|[^0-9])' + beginning + '[.,\\s]?' + tail + '(?![0-9])');
-  return pattern.test(value);
+  // Consume the *entire* grouped number: 1.122.000 must not match 122.000.
+  const amounts = normalize(text).match(/\d{1,3}(?:[.,\s]\d{3})+|\d{4,12}/g) ?? [];
+  return amounts.some((amount) => amount.replace(/\D/g, '') === expectedDigits);
 }
 
 export function isCandidateMatch(text: string, label: string, choiceId: PlanChoiceId): boolean {

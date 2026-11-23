@@ -129,3 +129,12 @@ footer a:hover { text-decoration: underline; }
 
 .rewrite-lab-button { display: block; width: 100%; margin: 10px 0; padding: 11px; border-radius: 9px; border: 1px solid #5a83b6; background: #1a3657; color: #cde8ff; font-weight: 750; font-size: 11px; cursor: pointer; }
 .rewrite-lab-button:hover { background: #21456f; }
+
+/* Explicit user approval is required before opening an official plan CTA. */
+.official-flow { margin-top: 18px; padding: 13px; border: 1px solid #356ba2; background: #0d2038; border-radius: 12px; }
+.official-flow .demo-select { display: block; margin: 9px 0; }
+.official-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.official-actions button { min-width: 0; border: 1px solid #45638c; border-radius: 8px; padding: 10px 8px; font-weight: 700; font-size: 11px; cursor: pointer; }
+.official-actions #official-launch { grid-column: 1 / -1; }
+.official-actions #official-launch:disabled { opacity: .45; cursor: not-allowed; }
+.official-status { font-size: 10px; color: #bed1ef; line-height: 1.6; margin: 10px 0 0; }
